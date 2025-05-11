@@ -181,21 +181,27 @@ struct EventRowView: View {
             
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                    .foregroundColor(.gray)
+                    .foregroundColor(.pink)
+                    .font(.system(size: 12))
+                
                 Text(formatDateOnly(dateString: event.date))
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.green)
+                    .fontWeight(.medium)
                 
                 // Add time if available
                 if event.startTime != nil || event.endTime != nil {
                     Text("•")
                         .foregroundColor(.gray)
                     Image(systemName: "clock")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.pink)
+                        .font(.system(size: 12))
+                    
                     if let timeText = formatTimeRange(startTime: event.startTime, endTime: event.endTime) {
                         Text(timeText)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
                     }
                 }
                 
@@ -203,11 +209,42 @@ struct EventRowView: View {
                     Text("•")
                         .foregroundColor(.gray)
                     Image(systemName: "mappin.circle")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.pink)
+                        .font(.system(size: 12))
+                    
                     Text(venue.name)
-                        .font(.subheadline)
+                        .font(.system(.caption, design: .monospaced))
                         .foregroundColor(.gray)
                         .lineLimit(1)
+                }
+            }
+            
+            // Genre tags in a second row if available
+            if let genres = event.genres, !genres.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "music.note")
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(genres.prefix(2)) { genre in
+                                Text(genre.name)
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.2))
+                                    .foregroundColor(.green)
+                                    .clipShape(Capsule())
+                            }
+                            
+                            if genres.count > 2 {
+                                Text("+\(genres.count - 2)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
                 }
             }
             
@@ -249,18 +286,23 @@ struct EventRowView: View {
                 let formatter = DateFormatter()
                 formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
                 return formatter
+            }(),
+            // Try with fractional seconds
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                return formatter
             }()
         ]
         
         // Output formatter for consistent date display
         let outputFormatter = DateFormatter()
-        outputFormatter.dateStyle = .medium
-        outputFormatter.timeStyle = .none
+        outputFormatter.dateFormat = "dd MMM yyyy" // Match EventDetailView format
         
         // Try to parse and reformat the date
         for formatter in dateFormatters {
             if let date = formatter.date(from: dateString) {
-                return outputFormatter.string(from: date)
+                return outputFormatter.string(from: date).uppercased()
             }
         }
         
@@ -273,7 +315,7 @@ struct EventRowView: View {
                 // Try to parse and format the date part
                 if let dateFormatter = dateFormatters.first, 
                    let date = dateFormatter.date(from: datePart) {
-                    return outputFormatter.string(from: date)
+                    return outputFormatter.string(from: date).uppercased()
                 }
                 return datePart // Return the raw date part if parsing fails
             }
@@ -363,14 +405,14 @@ struct EventRowView: View {
             }
         }
         
-        // Construct a compact time range string for list view
+        // Construct a compact time range string for list view with arrow like in detail view
         if let start = formattedStart {
             if let end = formattedEnd {
-                return "\(start)-\(end)"
+                return "\(start) → \(end)"
             }
             return start
         } else if let end = formattedEnd {
-            return "→\(end)"
+            return "→ \(end)"
         }
         
         return nil

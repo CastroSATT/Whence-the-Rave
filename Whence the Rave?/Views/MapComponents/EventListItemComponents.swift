@@ -12,12 +12,13 @@ struct EventListItem: View {
             
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                    .foregroundColor(.gray)
-                    .font(.caption)
+                    .foregroundColor(.pink)
+                    .font(.system(size: 12))
                 
                 Text(formatDate(dateString: event.date))
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.green)
+                    .fontWeight(.medium)
                 
                 if let timeText = formatTime(startTime: event.startTime, endTime: event.endTime) {
                     Text("•")
@@ -25,23 +26,24 @@ struct EventListItem: View {
                         .font(.caption)
                     
                     Image(systemName: "clock")
-                        .foregroundColor(.gray)
-                        .font(.caption)
+                        .foregroundColor(.pink)
+                        .font(.system(size: 12))
                     
                     Text(timeText)
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.green)
+                        .fontWeight(.medium)
                 }
             }
             
             if let venue = event.venue {
                 HStack(spacing: 4) {
                     Image(systemName: "mappin")
-                        .foregroundColor(.gray)
-                        .font(.caption)
+                        .foregroundColor(.pink)
+                        .font(.system(size: 12))
                     
                     Text(venue.name)
-                        .font(.caption)
+                        .font(.system(.caption, design: .monospaced))
                         .foregroundColor(.gray)
                         .lineLimit(1)
                 }
@@ -69,23 +71,90 @@ struct EventListItem: View {
                         .clipShape(Capsule())
                 }
             }
+            
+            // Genre tags
+            if let genres = event.genres, !genres.isEmpty {
+                HStack {
+                    Image(systemName: "music.note")
+                        .foregroundColor(.gray)
+                        .font(.caption2)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(genres.prefix(3)) { genre in
+                                Text(genre.name)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.2))
+                                    .foregroundColor(.green)
+                                    .clipShape(Capsule())
+                            }
+                            
+                            if genres.count > 3 {
+                                Text("+\(genres.count - 3)")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                }
+            }
         }
         .padding(.vertical, 4)
     }
     
     // Helper function to format date
     private func formatDate(dateString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        // First try to parse as a full date
+        let dateFormatters = [
+            // Try standard date format first (yyyy-MM-dd)
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                return formatter
+            }(),
+            // Try with time component
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+                return formatter
+            }(),
+            // Try with fractional seconds
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                return formatter
+            }()
+        ]
         
-        if let date = formatter.date(from: dateString) {
-            let outputFormatter = DateFormatter()
-            outputFormatter.dateStyle = .medium
-            outputFormatter.timeStyle = .none
-            return outputFormatter.string(from: date)
+        // Output formatter for consistent date display
+        let outputFormatter = DateFormatter()
+        outputFormatter.dateFormat = "dd MMM yyyy"
+        
+        // Try to parse and reformat the date
+        for formatter in dateFormatters {
+            if let date = formatter.date(from: dateString) {
+                return outputFormatter.string(from: date).uppercased()
+            }
         }
         
-        // Fallback to original string
+        // If we can't parse it, check if it contains a time component and remove it
+        if dateString.contains("T") {
+            let components = dateString.split(separator: "T")
+            if components.count > 0 {
+                // Just return the date part (before the T)
+                let datePart = String(components[0])
+                // Try to parse and format the date part
+                if let dateFormatter = dateFormatters.first, 
+                   let date = dateFormatter.date(from: datePart) {
+                    return outputFormatter.string(from: date).uppercased()
+                }
+                return datePart // Return the raw date part if parsing fails
+            }
+        }
+        
+        // If all else fails, return the original string
         return dateString
     }
     
@@ -94,30 +163,89 @@ struct EventListItem: View {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
         
-        // Create ISO formatters
-        let isoFormatter = ISO8601DateFormatter()
+        // Create multiple ISO formatters to handle different possible formats
+        let isoFormatters = [
+            // Standard ISO8601 with fractional seconds
+            { () -> ISO8601DateFormatter in
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                return formatter
+            }(),
+            // ISO8601 without fractional seconds
+            { () -> ISO8601DateFormatter in
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime]
+                return formatter
+            }(),
+            // Fallback date formatter for other ISO-like formats
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                return formatter
+            }()
+        ]
         
         var formattedStart: String?
         var formattedEnd: String?
         
-        // Parse start time
-        if let startTimeStr = startTime, let date = isoFormatter.date(from: startTimeStr) {
-            formattedStart = timeFormatter.string(from: date)
+        // Parse start time using multiple formatters
+        if let startTimeStr = startTime {
+            for formatter in isoFormatters {
+                if let date = (formatter as? ISO8601DateFormatter)?.date(from: startTimeStr) ?? 
+                              (formatter as? DateFormatter)?.date(from: startTimeStr) {
+                    formattedStart = timeFormatter.string(from: date)
+                    break
+                }
+            }
+            
+            // If all formatters fail, try to extract time directly (fallback)
+            if formattedStart == nil {
+                // Extract time portion if it looks like ISO format
+                if startTimeStr.contains("T") {
+                    let components = startTimeStr.split(separator: "T")
+                    if components.count > 1 {
+                        let timeComponent = components[1]
+                        if timeComponent.count >= 5 {
+                            formattedStart = String(timeComponent.prefix(5)) // Take HH:mm
+                        }
+                    }
+                }
+            }
         }
         
-        // Parse end time
-        if let endTimeStr = endTime, let date = isoFormatter.date(from: endTimeStr) {
-            formattedEnd = timeFormatter.string(from: date)
+        // Parse end time using multiple formatters
+        if let endTimeStr = endTime {
+            for formatter in isoFormatters {
+                if let date = (formatter as? ISO8601DateFormatter)?.date(from: endTimeStr) ?? 
+                              (formatter as? DateFormatter)?.date(from: endTimeStr) {
+                    formattedEnd = timeFormatter.string(from: date)
+                    break
+                }
+            }
+            
+            // If all formatters fail, try to extract time directly (fallback)
+            if formattedEnd == nil {
+                // Extract time portion if it looks like ISO format
+                if endTimeStr.contains("T") {
+                    let components = endTimeStr.split(separator: "T")
+                    if components.count > 1 {
+                        let timeComponent = components[1]
+                        if timeComponent.count >= 5 {
+                            formattedEnd = String(timeComponent.prefix(5)) // Take HH:mm
+                        }
+                    }
+                }
+            }
         }
         
-        // Construct time range string
+        // Construct time range string with arrow like detail view
         if let start = formattedStart {
             if let end = formattedEnd {
-                return "\(start)-\(end)"
+                return "\(start) → \(end)"
             }
             return start
         } else if let end = formattedEnd {
-            return "→\(end)"
+            return "→ \(end)"
         }
         
         return nil
@@ -148,7 +276,7 @@ struct NeoPunkEventListItem: View {
                     
                     Text(formatDate(dateString: event.date))
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.green)
                 }
                 
                 // Divider dot
@@ -165,7 +293,7 @@ struct NeoPunkEventListItem: View {
                         
                         Text(formatTime(startTime: event.startTime, endTime: event.endTime) ?? "TBA")
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.green)
                     }
                 }
             }
@@ -218,6 +346,37 @@ struct NeoPunkEventListItem: View {
                         .clipShape(Capsule())
                 }
             }
+            
+            // Genre tags (if available)
+            if let genres = event.genres, !genres.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(genres.prefix(3)) { genre in
+                            Text(genre.name)
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [.green, .cyan]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(Capsule())
+                        }
+                        
+                        if genres.count > 3 {
+                            Text("+\(genres.count - 3)")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 4)
@@ -225,15 +384,55 @@ struct NeoPunkEventListItem: View {
     
     // Helper function to format date - neo-punk style (shorter)
     private func formatDate(dateString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        // First try to parse as a full date
+        let dateFormatters = [
+            // Try standard date format first (yyyy-MM-dd)
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                return formatter
+            }(),
+            // Try with time component
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+                return formatter
+            }(),
+            // Try with fractional seconds
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                return formatter
+            }()
+        ]
         
-        if let date = formatter.date(from: dateString) {
-            let outputFormatter = DateFormatter()
-            outputFormatter.dateFormat = "dd MMM"
-            return outputFormatter.string(from: date).uppercased()
+        // Output formatter for consistent date display - shorter for neo-punk style
+        let outputFormatter = DateFormatter()
+        outputFormatter.dateFormat = "dd MMM"
+        
+        // Try to parse and reformat the date
+        for formatter in dateFormatters {
+            if let date = formatter.date(from: dateString) {
+                return outputFormatter.string(from: date).uppercased()
+            }
         }
         
+        // If we can't parse it, check if it contains a time component and remove it
+        if dateString.contains("T") {
+            let components = dateString.split(separator: "T")
+            if components.count > 0 {
+                // Just return the date part (before the T)
+                let datePart = String(components[0])
+                // Try to parse and format the date part
+                if let dateFormatter = dateFormatters.first, 
+                   let date = dateFormatter.date(from: datePart) {
+                    return outputFormatter.string(from: date).uppercased()
+                }
+                return datePart // Return the raw date part if parsing fails
+            }
+        }
+        
+        // If all else fails, return the original string
         return dateString
     }
     
@@ -242,30 +441,89 @@ struct NeoPunkEventListItem: View {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
         
-        // Create ISO formatters
-        let isoFormatter = ISO8601DateFormatter()
+        // Create multiple ISO formatters to handle different possible formats
+        let isoFormatters = [
+            // Standard ISO8601 with fractional seconds
+            { () -> ISO8601DateFormatter in
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                return formatter
+            }(),
+            // ISO8601 without fractional seconds
+            { () -> ISO8601DateFormatter in
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime]
+                return formatter
+            }(),
+            // Fallback date formatter for other ISO-like formats
+            { () -> DateFormatter in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+                return formatter
+            }()
+        ]
         
         var formattedStart: String?
         var formattedEnd: String?
         
-        // Parse start time
-        if let startTimeStr = startTime, let date = isoFormatter.date(from: startTimeStr) {
-            formattedStart = timeFormatter.string(from: date)
+        // Parse start time using multiple formatters
+        if let startTimeStr = startTime {
+            for formatter in isoFormatters {
+                if let date = (formatter as? ISO8601DateFormatter)?.date(from: startTimeStr) ?? 
+                              (formatter as? DateFormatter)?.date(from: startTimeStr) {
+                    formattedStart = timeFormatter.string(from: date)
+                    break
+                }
+            }
+            
+            // If all formatters fail, try to extract time directly (fallback)
+            if formattedStart == nil {
+                // Extract time portion if it looks like ISO format
+                if startTimeStr.contains("T") {
+                    let components = startTimeStr.split(separator: "T")
+                    if components.count > 1 {
+                        let timeComponent = components[1]
+                        if timeComponent.count >= 5 {
+                            formattedStart = String(timeComponent.prefix(5)) // Take HH:mm
+                        }
+                    }
+                }
+            }
         }
         
-        // Parse end time
-        if let endTimeStr = endTime, let date = isoFormatter.date(from: endTimeStr) {
-            formattedEnd = timeFormatter.string(from: date)
+        // Parse end time using multiple formatters
+        if let endTimeStr = endTime {
+            for formatter in isoFormatters {
+                if let date = (formatter as? ISO8601DateFormatter)?.date(from: endTimeStr) ?? 
+                              (formatter as? DateFormatter)?.date(from: endTimeStr) {
+                    formattedEnd = timeFormatter.string(from: date)
+                    break
+                }
+            }
+            
+            // If all formatters fail, try to extract time directly (fallback)
+            if formattedEnd == nil {
+                // Extract time portion if it looks like ISO format
+                if endTimeStr.contains("T") {
+                    let components = endTimeStr.split(separator: "T")
+                    if components.count > 1 {
+                        let timeComponent = components[1]
+                        if timeComponent.count >= 5 {
+                            formattedEnd = String(timeComponent.prefix(5)) // Take HH:mm
+                        }
+                    }
+                }
+            }
         }
         
-        // Construct time range string
+        // Construct time range string with arrow like detail view (more compact for neo-punk)
         if let start = formattedStart {
             if let end = formattedEnd {
-                return "\(start)→\(end)"
+                return "\(start) → \(end)"
             }
             return start
         } else if let end = formattedEnd {
-            return "→\(end)"
+            return "→ \(end)"
         }
         
         return nil

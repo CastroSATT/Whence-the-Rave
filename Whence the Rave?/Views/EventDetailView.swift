@@ -281,6 +281,33 @@ struct EventDetailView: View {
                     }
                 }
                 
+                    // Genres section
+                    if let genres = event.genres, !genres.isEmpty {
+                        sectionHeader(title: "GENRES")
+                        
+                        LazyVGrid(columns: [
+                            GridItem(.adaptive(minimum: 120), spacing: 8)
+                        ], spacing: 8) {
+                            ForEach(genres) { genre in
+                                Text(genre.name)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [.green, .cyan]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                
                     // Neo-punk action buttons
                     VStack(spacing: 15) {
                     Button {

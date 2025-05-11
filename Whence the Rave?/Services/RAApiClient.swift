@@ -38,6 +38,7 @@ struct RAEvent: Codable, Identifiable {
     var tickets: [RATicket]?
     var images: [RAImage]?
     var pick: RAPick?
+    var genres: [RAGenre]?
 }
 
 struct RAImage: Codable, Identifiable {
@@ -354,6 +355,10 @@ class RAApiClient {
                     validType
                     onSaleFrom
                     onSaleUntil
+                  }
+                  genres {
+                    id
+                    name
                   }
                 }
               }

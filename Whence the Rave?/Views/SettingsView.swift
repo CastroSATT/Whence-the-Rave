@@ -439,9 +439,9 @@ struct SettingsView: View {
                             Text(locationService.countries.isEmpty ? "NOT LOADED" : "\(locationService.countries.count) AREAS")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundColor(.green)
-                        }
-                        
-                        Button(action: updateAreasDatabase) {
+                    }
+                    
+                    Button(action: updateAreasDatabase) {
                             Image(systemName: "arrow.down.circle")
                                 .foregroundColor(.pink)
                                 .font(.system(size: 16))
@@ -452,20 +452,20 @@ struct SettingsView: View {
                     // Genre database status
                     HStack {
                         Image(systemName: "music.note.list")
-                            .foregroundColor(.pink)
-                            .font(.system(size: 14))
-                        
+                                .foregroundColor(.pink)
+                                .font(.system(size: 14))
+                            
                         Text("GENRES DATABASE")
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
+                                .font(.system(.caption, design: .monospaced))
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
                         
                         Spacer()
-                        
+                            
                         if isLoadingGenres {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .tint(.green)
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                    .tint(.green)
                         } else {
                             Text(genreService.genres.isEmpty ? "NOT LOADED" : "\(genreService.genres.count) GENRES")
                                 .font(.system(.caption, design: .monospaced))
@@ -476,10 +476,10 @@ struct SettingsView: View {
                             Image(systemName: "arrow.down.circle")
                                 .foregroundColor(.pink)
                                 .font(.system(size: 16))
-                        }
+                }
                         .disabled(isLoadingGenres)
                     }
-                }
+            }
                 .listRowBackground(Color.black.opacity(0.8))
                 .textCase(nil)
                 
