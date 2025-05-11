@@ -1,0 +1,571 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		88343AE82DCAEEEE00BE7DD6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88343ACD2DCAEEED00BE7DD6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88343AD42DCAEEED00BE7DD6;
+			remoteInfo = "Whence the Rave?";
+		};
+		88343AF22DCAEEEE00BE7DD6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88343ACD2DCAEEED00BE7DD6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88343AD42DCAEEED00BE7DD6;
+			remoteInfo = "Whence the Rave?";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		88343AD52DCAEEED00BE7DD6 /* Whence the Rave?.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Whence the Rave?.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		88343AE72DCAEEEE00BE7DD6 /* Whence the Rave?Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Whence the Rave?Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		88343AF12DCAEEEE00BE7DD6 /* Whence the Rave?UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Whence the Rave?UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		88343AD72DCAEEED00BE7DD6 /* Whence the Rave? */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Whence the Rave?";
+			sourceTree = "<group>";
+		};
+		88343AEA2DCAEEEE00BE7DD6 /* Whence the Rave?Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Whence the Rave?Tests";
+			sourceTree = "<group>";
+		};
+		88343AF42DCAEEEE00BE7DD6 /* Whence the Rave?UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Whence the Rave?UITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		88343AD22DCAEEED00BE7DD6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AE42DCAEEEE00BE7DD6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AEE2DCAEEEE00BE7DD6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		88343ACC2DCAEEED00BE7DD6 = {
+			isa = PBXGroup;
+			children = (
+				88343AD72DCAEEED00BE7DD6 /* Whence the Rave? */,
+				88343AEA2DCAEEEE00BE7DD6 /* Whence the Rave?Tests */,
+				88343AF42DCAEEEE00BE7DD6 /* Whence the Rave?UITests */,
+				88343AD62DCAEEED00BE7DD6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		88343AD62DCAEEED00BE7DD6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				88343AD52DCAEEED00BE7DD6 /* Whence the Rave?.app */,
+				88343AE72DCAEEEE00BE7DD6 /* Whence the Rave?Tests.xctest */,
+				88343AF12DCAEEEE00BE7DD6 /* Whence the Rave?UITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		88343AD42DCAEEED00BE7DD6 /* Whence the Rave? */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 88343AFB2DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?" */;
+			buildPhases = (
+				88343AD12DCAEEED00BE7DD6 /* Sources */,
+				88343AD22DCAEEED00BE7DD6 /* Frameworks */,
+				88343AD32DCAEEED00BE7DD6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				88343AD72DCAEEED00BE7DD6 /* Whence the Rave? */,
+			);
+			name = "Whence the Rave?";
+			packageProductDependencies = (
+			);
+			productName = "Whence the Rave?";
+			productReference = 88343AD52DCAEEED00BE7DD6 /* Whence the Rave?.app */;
+			productType = "com.apple.product-type.application";
+		};
+		88343AE62DCAEEEE00BE7DD6 /* Whence the Rave?Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 88343AFE2DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?Tests" */;
+			buildPhases = (
+				88343AE32DCAEEEE00BE7DD6 /* Sources */,
+				88343AE42DCAEEEE00BE7DD6 /* Frameworks */,
+				88343AE52DCAEEEE00BE7DD6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				88343AE92DCAEEEE00BE7DD6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				88343AEA2DCAEEEE00BE7DD6 /* Whence the Rave?Tests */,
+			);
+			name = "Whence the Rave?Tests";
+			packageProductDependencies = (
+			);
+			productName = "Whence the Rave?Tests";
+			productReference = 88343AE72DCAEEEE00BE7DD6 /* Whence the Rave?Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		88343AF02DCAEEEE00BE7DD6 /* Whence the Rave?UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 88343B012DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?UITests" */;
+			buildPhases = (
+				88343AED2DCAEEEE00BE7DD6 /* Sources */,
+				88343AEE2DCAEEEE00BE7DD6 /* Frameworks */,
+				88343AEF2DCAEEEE00BE7DD6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				88343AF32DCAEEEE00BE7DD6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				88343AF42DCAEEEE00BE7DD6 /* Whence the Rave?UITests */,
+			);
+			name = "Whence the Rave?UITests";
+			packageProductDependencies = (
+			);
+			productName = "Whence the Rave?UITests";
+			productReference = 88343AF12DCAEEEE00BE7DD6 /* Whence the Rave?UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		88343ACD2DCAEEED00BE7DD6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					88343AD42DCAEEED00BE7DD6 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					88343AE62DCAEEEE00BE7DD6 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 88343AD42DCAEEED00BE7DD6;
+					};
+					88343AF02DCAEEEE00BE7DD6 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 88343AD42DCAEEED00BE7DD6;
+					};
+				};
+			};
+			buildConfigurationList = 88343AD02DCAEEED00BE7DD6 /* Build configuration list for PBXProject "Whence the Rave?" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 88343ACC2DCAEEED00BE7DD6;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 88343AD62DCAEEED00BE7DD6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				88343AD42DCAEEED00BE7DD6 /* Whence the Rave? */,
+				88343AE62DCAEEEE00BE7DD6 /* Whence the Rave?Tests */,
+				88343AF02DCAEEEE00BE7DD6 /* Whence the Rave?UITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		88343AD32DCAEEED00BE7DD6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AE52DCAEEEE00BE7DD6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AEF2DCAEEEE00BE7DD6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		88343AD12DCAEEED00BE7DD6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AE32DCAEEEE00BE7DD6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		88343AED2DCAEEEE00BE7DD6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		88343AE92DCAEEEE00BE7DD6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88343AD42DCAEEED00BE7DD6 /* Whence the Rave? */;
+			targetProxy = 88343AE82DCAEEEE00BE7DD6 /* PBXContainerItemProxy */;
+		};
+		88343AF32DCAEEEE00BE7DD6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88343AD42DCAEEED00BE7DD6 /* Whence the Rave? */;
+			targetProxy = 88343AF22DCAEEEE00BE7DD6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		88343AF92DCAEEEE00BE7DD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		88343AFA2DCAEEEE00BE7DD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		88343AFC2DCAEEEE00BE7DD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Whence the Rave?/Preview Content\"";
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Whence-the-Rave--Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We use your location to find events near you and display them on the map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to find events near you and display them on the map.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		88343AFD2DCAEEEE00BE7DD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Whence the Rave?/Preview Content\"";
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Whence-the-Rave--Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "We use your location to find events near you and display them on the map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to find events near you and display them on the map.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		88343AFF2DCAEEEE00BE7DD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Whence the Rave?.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Whence the Rave?";
+			};
+			name = Debug;
+		};
+		88343B002DCAEEEE00BE7DD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Whence the Rave?.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Whence the Rave?";
+			};
+			name = Release;
+		};
+		88343B022DCAEEEE00BE7DD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Whence the Rave?";
+			};
+			name = Debug;
+		};
+		88343B032DCAEEEE00BE7DD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TVG92NWNSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TheWorstCoded.Whence-the-Rave-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Whence the Rave?";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		88343AD02DCAEEED00BE7DD6 /* Build configuration list for PBXProject "Whence the Rave?" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88343AF92DCAEEEE00BE7DD6 /* Debug */,
+				88343AFA2DCAEEEE00BE7DD6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		88343AFB2DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88343AFC2DCAEEEE00BE7DD6 /* Debug */,
+				88343AFD2DCAEEEE00BE7DD6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		88343AFE2DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88343AFF2DCAEEEE00BE7DD6 /* Debug */,
+				88343B002DCAEEEE00BE7DD6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		88343B012DCAEEEE00BE7DD6 /* Build configuration list for PBXNativeTarget "Whence the Rave?UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88343B022DCAEEEE00BE7DD6 /* Debug */,
+				88343B032DCAEEEE00BE7DD6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 88343ACD2DCAEEED00BE7DD6 /* Project object */;
+}
