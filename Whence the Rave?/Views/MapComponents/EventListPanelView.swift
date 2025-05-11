@@ -71,7 +71,7 @@ struct EventListPanelView: View {
             Rectangle()
                 .fill(Color.clear)
                 .frame(width: 60, height: 35) // Approximate space of both buttons
-                .padding(.trailing)
+            .padding(.trailing)
         }
         .padding(.vertical, 12)
         .background(Color.black.opacity(0.8))

@@ -1027,6 +1027,84 @@ class RAApiClient {
         }
         #endif
     }
+    
+    // Perform a GraphQL request with the provided payload and completion handler
+    func performGraphQLRequest(payload: [String: Any], completion: @escaping (Data?, Error?) -> Void) {
+        logger.debug("Performing GraphQL request with custom payload")
+        
+        guard let url = URL(string: baseURL) else {
+            logger.error("Invalid URL: \(baseURL)")
+            completion(nil, URLError(.badURL))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        // Set headers for the request
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.addValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
+        request.addValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        request.addValue("https://ra.co", forHTTPHeaderField: "Origin")
+        request.addValue("https://ra.co/events", forHTTPHeaderField: "Referer")
+        
+        // Serialize the payload to JSON
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+        } catch {
+            logger.error("Error serializing request: \(error)")
+            completion(nil, error)
+            return
+        }
+        
+        logger.debug("Sending GraphQL request")
+        
+        // Create a session and first visit the main site to get cookies (standard pattern in this app)
+        let session = URLSession.shared
+        
+        // First visit the main site, then make the actual request
+        session.dataTask(with: URL(string: "https://ra.co")!) { [weak self] _, _, _ in
+            guard let self = self else { return }
+            
+            session.dataTask(with: request) { [weak self] data, response, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    self.logger.error("Network error: \(error.localizedDescription)")
+                    completion(nil, error)
+                    return
+                }
+                
+                // Log response status
+                if let httpResponse = response as? HTTPURLResponse {
+                    self.logger.debug("GraphQL API response: HTTP \(httpResponse.statusCode)")
+                    
+                    if !(200...299).contains(httpResponse.statusCode) {
+                        self.logger.error("HTTP Error: \(httpResponse.statusCode)")
+                        
+                        // Try to log the error response body
+                        if let data = data, let errorString = String(data: data, encoding: .utf8) {
+                            self.logger.error("Error response: \(errorString)")
+                        }
+                        
+                        completion(nil, URLError(.badServerResponse))
+                        return
+                    }
+                }
+                
+                // Save the response for debugging
+                if let data = data {
+                    let randomID = UUID().uuidString.prefix(8)
+                    self.saveResponseForDebugging(data, filename: "graphql_response_\(randomID).json")
+                    completion(data, nil)
+                } else {
+                    self.logger.error("No data received in GraphQL response")
+                    completion(nil, NSError(domain: "RAApiClient", code: 1, userInfo: [NSLocalizedDescriptionKey: "No data received"]))
+                }
+            }.resume()
+        }.resume()
+    }
 }
 
 extension RAVenue: Equatable {

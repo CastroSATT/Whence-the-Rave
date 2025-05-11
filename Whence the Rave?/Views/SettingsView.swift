@@ -23,6 +23,13 @@ struct SettingsView: View {
     @State private var updateMessage = ""
     @ObservedObject private var locationService = LocationService.shared
     
+    // Genre database states
+    @State private var isLoadingGenres = false
+    @State private var showGenreUpdateResult = false
+    @State private var genreUpdateSuccess = false
+    @State private var genreUpdateMessage = ""
+    @ObservedObject private var genreService = GenreService.shared
+    
     // Map settings
     @ObservedObject private var mapSettings = MapSettings.shared
     
@@ -433,29 +440,46 @@ struct SettingsView: View {
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundColor(.green)
                         }
-                    }
-                    
-                    Button(action: updateAreasDatabase) {
-                        HStack {
+                        
+                        Button(action: updateAreasDatabase) {
                             Image(systemName: "arrow.down.circle")
                                 .foregroundColor(.pink)
-                                .font(.system(size: 14))
-                            
-                            Text("UPDATE AREAS DATABASE")
-                                .font(.system(.caption, design: .monospaced))
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            if isLoadingAreas {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                    .tint(.green)
+                                .font(.system(size: 16))
                         }
+                        .disabled(isLoadingAreas)
+                    }
+                    
+                    // Genre database status
+                    HStack {
+                        Image(systemName: "music.note.list")
+                            .foregroundColor(.pink)
+                            .font(.system(size: 14))
+                        
+                        Text("GENRES DATABASE")
+                            .font(.system(.caption, design: .monospaced))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        if isLoadingGenres {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .tint(.green)
+                        } else {
+                            Text(genreService.genres.isEmpty ? "NOT LOADED" : "\(genreService.genres.count) GENRES")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.green)
+                        }
+                        
+                        Button(action: updateGenresDatabase) {
+                            Image(systemName: "arrow.down.circle")
+                                .foregroundColor(.pink)
+                                .font(.system(size: 16))
+                        }
+                        .disabled(isLoadingGenres)
                     }
                 }
-                .disabled(isLoadingAreas)
-            }
                 .listRowBackground(Color.black.opacity(0.8))
                 .textCase(nil)
                 
@@ -565,25 +589,40 @@ struct SettingsView: View {
         } message: {
             Text(updateMessage)
         }
+        .alert(genreUpdateSuccess ? "Genres Updated" : "Genre Update Failed", isPresented: $showGenreUpdateResult) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(genreUpdateMessage)
+        }
         .sheet(isPresented: $showingAreaPicker) {
             AreaPickerView(selectedArea: $viewModel.selectedArea)
                 .presentationDetents([.medium, .large])
         }
         .onAppear {
             isLoadingAreas = locationService.isLoadingAreas
+            isLoadingGenres = genreService.isLoadingGenres
             
             // Make sure our selection is in sync with MapSettings
             selectedDistanceUnit = mapSettings.distanceUnit.rawValue
             logger.debug("📱 SettingsView appeared. Current distance unit: \(selectedDistanceUnit)")
             logger.debug("📱 MapSettings.shared.distanceUnit is now: \(mapSettings.distanceUnit.rawValue)")
         }
-        // Monitor loading state
+        // Monitor loading state for areas
         .onChange(of: locationService.isLoadingAreas) { _, newValue in
             isLoadingAreas = newValue
             
             // If loading just completed, show result
             if !newValue && isLoadingAreas {
                 showUpdateResult()
+            }
+        }
+        // Monitor loading state for genres
+        .onChange(of: genreService.isLoadingGenres) { _, newValue in
+            isLoadingGenres = newValue
+            
+            // If loading just completed, show result
+            if !newValue && isLoadingGenres {
+                displayGenreUpdateResult()
             }
         }
     }
@@ -674,6 +713,51 @@ struct SettingsView: View {
             areaUpdateSuccess = true
             updateMessage = "Successfully loaded \(locationService.countries.count) countries and regions."
             showAreaUpdateResult = true
+        }
+    }
+    
+    private func updateGenresDatabase() {
+        isLoadingGenres = true
+        
+        // Reset any previous errors
+        genreUpdateMessage = ""
+        showGenreUpdateResult = false
+        
+        // Start the update process - force refresh from API
+        genreService.loadGenresDatabase(forceRefresh: true)
+        
+        // Set up a timer to check the result after a few seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            if let error = genreService.loadingError {
+                // Update failed
+                genreUpdateSuccess = false
+                genreUpdateMessage = "Error updating genres: \(error.localizedDescription)"
+            } else if genreService.genres.isEmpty {
+                // No data returned but no error
+                genreUpdateSuccess = false
+                genreUpdateMessage = "No genres were loaded. Please check your internet connection and try again."
+            } else {
+                // Success!
+                genreUpdateSuccess = true
+                genreUpdateMessage = "Successfully loaded \(genreService.genres.count) music genres."
+            }
+            
+            showGenreUpdateResult = true
+            isLoadingGenres = false
+        }
+    }
+    
+    private func displayGenreUpdateResult() {
+        if let error = genreService.loadingError {
+            // Update failed
+            genreUpdateSuccess = false
+            genreUpdateMessage = "Error updating genres: \(error.localizedDescription)"
+            showGenreUpdateResult = true
+        } else if !genreService.genres.isEmpty {
+            // Success!
+            genreUpdateSuccess = true
+            genreUpdateMessage = "Successfully loaded \(genreService.genres.count) music genres."
+            showGenreUpdateResult = true
         }
     }
 } 

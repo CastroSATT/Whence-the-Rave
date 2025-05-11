@@ -36,12 +36,12 @@ struct SlidePanelController {
     
     // Function to toggle panel visibility with animation
     func toggleVisibility() {
-        withAnimation(.spring(
+                withAnimation(.spring(
             response: Self.animationResponse,
             dampingFraction: Self.animationDamping
-        )) {
+                )) {
             isVisible.toggle()
-            dragOffset = 0
-        }
+                    dragOffset = 0
+            }
     }
 } 
