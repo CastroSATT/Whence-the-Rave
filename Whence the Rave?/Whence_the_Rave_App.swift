@@ -24,15 +24,15 @@ struct Whence_the_Rave_App: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                ContentView()
-                    .environmentObject(locationService)
+            ContentView()
+                .environmentObject(locationService)
                     .opacity(showSplash ? 0 : 1)
                 
                 if showSplash {
                     SplashScreen(isFirstLaunch: $showSplash)
                 }
             }
-            .onAppear {
+                .onAppear {
                 // Show splash screen if it's first launch or enabled in settings
                 showSplash = isFirstLaunch || mapSettings.showSplashOnLaunch
                 
@@ -41,12 +41,12 @@ struct Whence_the_Rave_App: App {
                     isFirstLaunch = false
                 }
                 
-                // Initialize the location service when the app starts
-                locationService.requestLocationPermission()
-                
-                // Load the countries database
-                locationService.loadCountriesDatabase()
-            }
+                    // Initialize the location service when the app starts
+                    locationService.requestLocationPermission()
+                    
+                    // Load the countries database
+                    locationService.loadCountriesDatabase()
+                }
         }
     }
 }

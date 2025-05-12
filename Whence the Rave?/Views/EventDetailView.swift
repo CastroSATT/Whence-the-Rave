@@ -192,6 +192,8 @@ struct EventDetailView: View {
                                         .foregroundColor(.white)
                                     
                                 Spacer()
+                                
+                                ArtistSocialLinksView(artist: artist)
                                     
                                 if let contentUrl = artist.contentUrl {
                                     Button {
@@ -207,7 +209,7 @@ struct EventDetailView: View {
                                 }
                             }
                                 .padding(.vertical, 10)
-                    .padding(.horizontal)
+                    
                                 
                                 // Separator except for last item
                                 if artist.id != event.artists.last?.id {

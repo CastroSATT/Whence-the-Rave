@@ -95,4 +95,20 @@ struct AppArtist: Identifiable, Codable {
     var fullArtistUrl: String {
         return "https://ra.co\(contentUrl)"
     }
+}
+
+struct ArtistSocialLinks: Codable {
+    let soundcloud: String?
+    let instagram: String?
+    let twitter: String?
+    let bandcamp: String?
+    let discogs: String?
+    let website: String?
+}
+
+extension RAArtist {
+    var socialLinks: ArtistSocialLinks? {
+        // This will be populated when we fetch the artist details
+        return nil
+    }
 } 

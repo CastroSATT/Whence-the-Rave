@@ -528,4 +528,107 @@ struct NeoPunkEventListItem: View {
         
         return nil
     }
+}
+
+struct ArtistSocialLinksView: View {
+    let artist: RAArtist
+    @State private var socialLinks: ArtistSocialLinks?
+    @State private var isLoading = false
+    @State private var error: Error?
+    
+    private let apiClient = RAApiClient()
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            if isLoading {
+                ProgressView()
+                    .scaleEffect(0.5)
+            } else if error != nil {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundColor(.red)
+                    .font(.system(size: 14))
+                    .help(error?.localizedDescription ?? "Failed to load social links")
+            } else if let links = socialLinks {
+                if let soundcloud = links.soundcloud {
+                    SocialLinkButton(url: soundcloud, icon: "waveform")
+                }
+                if let instagram = links.instagram {
+                    SocialLinkButton(url: instagram, icon: "camera")
+                }
+                if let twitter = links.twitter {
+                    SocialLinkButton(url: twitter, icon: "bird")
+                }
+                if let bandcamp = links.bandcamp {
+                    SocialLinkButton(url: bandcamp, icon: "music.note")
+                }
+                if let discogs = links.discogs {
+                    SocialLinkButton(url: discogs, icon: "vinyl")
+                }
+                if let website = links.website {
+                    SocialLinkButton(url: website, icon: "globe")
+                }
+            }
+        }
+        .onAppear {
+            fetchArtistDetails()
+        }
+    }
+    
+    private func fetchArtistDetails() {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        Task {
+            do {
+                let links = try await apiClient.fetchArtistDetails(artistId: artist.id)
+                await MainActor.run {
+                    self.socialLinks = links
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+}
+
+struct SocialLinkButton: View {
+    let url: String
+    let icon: String
+    
+    var body: some View {
+        Button {
+            if let url = URL(string: url) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            if icon == "vinyl" { // Discogs special case
+                Text("D")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(.pink)
+                    .frame(width: 24, height: 24)
+                    .background(Color.black.opacity(0.8))
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(.pink, lineWidth: 1)
+                    )
+            } else {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(.pink)
+                    .frame(width: 24, height: 24)
+                    .background(Color.black.opacity(0.8))
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(.pink, lineWidth: 1)
+                    )
+            }
+        }
+        .buttonStyle(.borderless)
+    }
 } 

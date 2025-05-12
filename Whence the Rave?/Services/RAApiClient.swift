@@ -212,15 +212,13 @@ struct CountriesData: Codable {
 }
 
 class RAApiClient {
+    public init() {}
+    
     static let shared = RAApiClient()
     
     // Use the same GraphQL endpoint as the Python implementation
     private let baseURL = "https://ra.co/graphql"
     private let logger = AppLogger.shared
-    
-    private init() {
-        logger.info("RAApiClient initialized")
-    }
     
     // Diagnostic method to check the GraphQL schema
     func diagnoseGraphQLSchema() -> AnyPublisher<Data, Error> {
@@ -1110,6 +1108,62 @@ class RAApiClient {
             }.resume()
         }.resume()
     }
+
+    func fetchArtistDetails(artistId: String) async throws -> ArtistSocialLinks {
+        let query = """
+        query GET_ARTIST_BY_ID($id: ID!) {
+          artist(id: $id) {
+            id
+            name
+            soundcloud
+            instagram
+            twitter
+            bandcamp
+            discogs
+            website
+          }
+        }
+        """
+        
+        let variables = ["id": artistId]
+        
+        let requestBody: [String: Any] = [
+            "query": query,
+            "variables": variables,
+            "operationName": "GET_ARTIST_BY_ID"
+        ]
+        
+        guard let url = URL(string: "https://ra.co/graphql") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
+        request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://ra.co", forHTTPHeaderField: "Origin")
+        request.setValue("https://ra.co", forHTTPHeaderField: "Referer")
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(GraphQLResponse<ArtistDetailsResponse>.self, from: data)
+        
+        guard let artist = response.data?.artist else {
+            throw APIError.invalidResponse
+        }
+        
+        return ArtistSocialLinks(
+            soundcloud: artist.soundcloud,
+            instagram: artist.instagram,
+            twitter: artist.twitter,
+            bandcamp: artist.bandcamp,
+            discogs: artist.discogs,
+            website: artist.website
+        )
+    }
 }
 
 extension RAVenue: Equatable {
@@ -1130,4 +1184,30 @@ extension RAArtist: Equatable {
     static func == (lhs: RAArtist, rhs: RAArtist) -> Bool {
         return lhs.id == rhs.id
     }
+}
+
+struct ArtistDetailsResponse: Codable {
+    let artist: ArtistDetails?
+}
+
+struct ArtistDetails: Codable {
+    let id: String
+    let name: String
+    let soundcloud: String?
+    let instagram: String?
+    let twitter: String?
+    let bandcamp: String?
+    let discogs: String?
+    let website: String?
+}
+
+enum APIError: Error {
+    case invalidURL
+    case invalidResponse
+    case networkError(Error)
+}
+
+struct GraphQLResponse<T: Codable>: Codable {
+    let data: T?
+    let errors: [GraphQLError]?
 }
