@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct Whence_the_Rave_App: App {
@@ -46,6 +47,22 @@ struct Whence_the_Rave_App: App {
                     
                     // Load the countries database
                     locationService.loadCountriesDatabase()
+                    
+                    // Request notification permissions
+                    requestNotificationPermissions()
+                }
+        }
+    }
+    
+    // Request notification permissions at startup
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("✅ Notification permission granted")
+            } else if let error = error {
+                print("❌ Notification permission error: \(error.localizedDescription)")
+            } else {
+                print("❌ Notification permission denied")
                 }
         }
     }

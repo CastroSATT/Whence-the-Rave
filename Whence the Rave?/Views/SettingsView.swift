@@ -313,6 +313,27 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    
+                    // Heading indicator toggle
+                    HStack {
+                        Image(systemName: "location.north.line")
+                            .foregroundColor(.pink)
+                            .font(.system(size: 14))
+                        
+                        Text("COMPASS HEADING")
+                            .font(.system(.caption, design: .monospaced))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: Binding(
+                            get: { mapSettings.showHeadingIndicator },
+                            set: { mapSettings.setShowHeadingIndicator($0) }
+                        ))
+                        .labelsHidden()
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                    }
                 }
                 .listRowBackground(Color.black.opacity(0.8))
                 .textCase(nil)

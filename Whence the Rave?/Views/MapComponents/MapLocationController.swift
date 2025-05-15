@@ -19,9 +19,12 @@ class MapLocationController {
     
     // MARK: - Initialization
     
-    init(region: Binding<MKCoordinateRegion>, locationService: LocationService = LocationService.shared) {
+    init(region: Binding<MKCoordinateRegion>, locationService: LocationService) {
         self._region = region
         self.locationService = locationService
+        
+        // Request heading updates when initializing the controller
+        locationService.startHeadingUpdates()
     }
     
     // MARK: - Public Methods

@@ -1,11 +1,15 @@
 import SwiftUI
 import MapKit
+import UserNotifications
 
 struct EventDetailView: View {
     let event: RAEvent
     @State private var mapRegion: MKCoordinateRegion
     @State private var mapCameraPosition: MapCameraPosition
     @Environment(\.colorScheme) private var colorScheme
+    @State private var showNotificationDialog = false
+    @State private var selectedNotificationTime: NotificationTimeOption = .oneHour
+    @State private var hasActiveNotification = false
     
     init(event: RAEvent) {
         self.event = event
@@ -47,7 +51,8 @@ struct EventDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Event header with glitch gradient border
                     VStack(alignment: .leading, spacing: 8) {
-                        // Event title with cyber styling
+                        // Event title with cyber styling and notification button
+                        HStack {
                     Text(event.title)
                             .font(.system(.title, design: .monospaced))
                             .fontWeight(.black)
@@ -60,6 +65,27 @@ struct EventDetailView: View {
                                     .foregroundColor(.pink),
                                 alignment: .bottom
                             )
+                            
+                            Spacer()
+                            
+                            Button {
+                                showNotificationDialog = true
+                            } label: {
+                                ZStack {
+                                    Image(systemName: hasActiveNotification ? "bell.fill" : "bell.badge")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(hasActiveNotification ? .pink : .green)
+                                    
+                                    if hasActiveNotification {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 8, y: -8)
+                                    }
+                                }
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
                     
                         // Date display with custom icon
                         HStack(spacing: 10) {
@@ -401,6 +427,17 @@ struct EventDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .sheet(isPresented: $showNotificationDialog) {
+            NotificationOptionsView(
+                event: event,
+                selectedTime: $selectedNotificationTime,
+                isPresented: $showNotificationDialog,
+                hasActiveNotification: $hasActiveNotification
+            )
+        }
+        .onAppear {
+            checkNotificationStatus()
+        }
     }
     
     // Neo-punk section header
@@ -566,5 +603,235 @@ struct EventDetailView: View {
         
         // If all else fails, return the original string
         return dateString
+    }
+    
+    // Check if there are any active notifications for this event
+    private func checkNotificationStatus() {
+        let identifierPrefix = "event-\(event.id)"
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            let eventRequests = requests.filter { $0.identifier.hasPrefix(identifierPrefix) }
+            DispatchQueue.main.async {
+                self.hasActiveNotification = !eventRequests.isEmpty
+            }
+        }
+    }
+}
+
+// Notification time options
+enum NotificationTimeOption: String, CaseIterable, Identifiable {
+    case tenMinutes = "10 minutes before"
+    case thirtyMinutes = "30 minutes before"
+    case oneHour = "1 hour before"
+    case threeHours = "3 hours before"
+    case oneDay = "1 day before"
+    case threeDays = "3 days before"
+    case oneWeek = "1 week before"
+    
+    var id: String { rawValue }
+    
+    var timeInterval: TimeInterval {
+        switch self {
+        case .tenMinutes: return 10 * 60
+        case .thirtyMinutes: return 30 * 60
+        case .oneHour: return 60 * 60
+        case .threeHours: return 3 * 60 * 60
+        case .oneDay: return 24 * 60 * 60
+        case .threeDays: return 3 * 24 * 60 * 60
+        case .oneWeek: return 7 * 24 * 60 * 60
+        }
+    }
+}
+
+// Notification options dialog
+struct NotificationOptionsView: View {
+    let event: RAEvent
+    @Binding var selectedTime: NotificationTimeOption
+    @Binding var isPresented: Bool
+    @Binding var hasActiveNotification: Bool
+    @State private var isScheduling = false
+    @State private var showAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var showDeleteConfirmation = false
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Neo-punk background
+                Color.black.ignoresSafeArea()
+                
+                VStack(spacing: 20) {
+                    Text("Notification for")
+                        .font(.system(.headline, design: .monospaced))
+                        .foregroundColor(.green)
+                    
+                    Text(event.title)
+                        .font(.system(.title3, design: .monospaced))
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    
+                    // Show delete option if a notification is active
+                    if hasActiveNotification {
+                        Text("You already have a notification set for this event")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.pink)
+                            .padding(.top, 5)
+                        
+                        Button {
+                            showDeleteConfirmation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "bell.slash.fill")
+                                Text("REMOVE NOTIFICATION")
+                                    .font(.system(.headline, design: .monospaced))
+                                    .fontWeight(.black)
+                                    .kerning(1)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.black)
+                            .foregroundColor(.pink)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(.pink, lineWidth: 2)
+                            )
+                            .cornerRadius(8)
+                        }
+                        .padding(.bottom, 20)
+                    }
+                    
+                    Picker("Notify me", selection: $selectedTime) {
+                        ForEach(NotificationTimeOption.allCases) { option in
+                            Text(option.rawValue).tag(option)
+                        }
+                    }
+                    .pickerStyle(WheelPickerStyle())
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [.pink, .purple, .clear]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    )
+                    
+                    Button {
+                        isScheduling = true
+                        scheduleNotification()
+                    } label: {
+                        HStack {
+                            Image(systemName: "bell.fill")
+                            Text(hasActiveNotification ? "UPDATE REMINDER" : "SET REMINDER")
+                                .font(.system(.headline, design: .monospaced))
+                                .fontWeight(.black)
+                                .kerning(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [.pink, .purple]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
+                    }
+                    .disabled(isScheduling)
+                    .overlay(
+                        Group {
+                            if isScheduling {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.5)
+                            }
+                        }
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                }
+                .padding()
+            }
+            .navigationBarTitle("Event Reminder", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Cancel") {
+                isPresented = false
+            })
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text(alertTitle),
+                    message: Text(alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        if alertTitle.contains("Success") {
+                            isPresented = false
+                        }
+                    }
+                )
+            }
+            .alert("Remove Notification", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    deleteNotification()
+                }
+            } message: {
+                Text("Are you sure you want to remove the notification for this event?")
+            }
+        }
+    }
+    
+    private func scheduleNotification() {
+        print("🔔 DEBUG: Starting to schedule notification for event: \(event.title)")
+        
+        // If there's an existing notification, remove it first
+        if hasActiveNotification {
+            print("🔔 DEBUG: Removing existing notification first")
+            NotificationService.shared.cancelEventNotification(for: event)
+        }
+        
+        // Request notification permission and schedule
+        NotificationService.shared.requestPermission { granted in
+            if granted {
+                print("🔔 DEBUG: Permission granted, scheduling notification")
+                // Schedule notification
+                NotificationService.shared.scheduleEventNotification(
+                    for: event, 
+                    timeInterval: selectedTime.timeInterval
+                )
+                
+                // Show success alert
+                alertTitle = "Success"
+                alertMessage = "Notification set for \(selectedTime.rawValue) the event."
+                hasActiveNotification = true
+                showAlert = true
+                
+                print("🔔 DEBUG: Notification scheduled successfully")
+            } else {
+                print("🔔 DEBUG: Permission denied")
+                // Show error alert
+                alertTitle = "Permission Denied"
+                alertMessage = "Please enable notifications for this app in Settings to receive event reminders."
+                showAlert = true
+            }
+            
+            isScheduling = false
+        }
+    }
+    
+    private func deleteNotification() {
+        NotificationService.shared.cancelEventNotification(for: event)
+        hasActiveNotification = false
+        alertTitle = "Notification Removed"
+        alertMessage = "The notification for this event has been removed."
+        showAlert = true
     }
 } 

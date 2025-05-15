@@ -10,6 +10,7 @@ class LocationService: NSObject, ObservableObject {
     private let logger = AppLogger.shared
     
     @Published var currentLocation: CLLocation?
+    @Published var currentHeading: CLHeading?
     @Published var locationStatus: CLAuthorizationStatus = .notDetermined
     @Published var countries: [RACountry] = []
     @Published var isLoadingAreas: Bool = false
@@ -39,6 +40,22 @@ class LocationService: NSObject, ObservableObject {
     func stopLocationUpdates() {
         logger.info("Stopping location updates")
         locationManager.stopUpdatingLocation()
+    }
+    
+    // New method to start heading updates
+    func startHeadingUpdates() {
+        if CLLocationManager.headingAvailable() {
+            logger.info("Starting heading updates")
+            locationManager.startUpdatingHeading()
+        } else {
+            logger.warning("Heading updates not available on this device")
+        }
+    }
+    
+    // New method to stop heading updates
+    func stopHeadingUpdates() {
+        logger.info("Stopping heading updates")
+        locationManager.stopUpdatingHeading()
     }
     
     // MARK: - Area Database Management
@@ -381,6 +398,15 @@ extension LocationService: CLLocationManagerDelegate {
                 // If countries aren't loaded yet, delay until they are
                 logger.info("Deferring nearest area calculation until countries database is loaded")
             }
+        }
+    }
+    
+    // Handle heading updates
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        // Only use heading if it's reasonably accurate
+        if newHeading.headingAccuracy >= 0 && newHeading.headingAccuracy <= 20 {
+            currentHeading = newHeading
+            logger.debug("Heading updated: \(newHeading.trueHeading)° (accuracy: \(newHeading.headingAccuracy)°)")
         }
     }
     

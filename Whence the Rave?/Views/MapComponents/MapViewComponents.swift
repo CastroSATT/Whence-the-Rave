@@ -289,17 +289,26 @@ struct MapViewRepresentable: UIViewRepresentable {
             
             logger.debug("Selected annotation for event: '\(eventTitle)' (id: \(eventId))")
             
-            // Skip the callout and directly show the event detail sheet
+            // Set the selected event first, BEFORE showing the sheet
             parent.selectedEvent = annotation.event
             isAnnotationSelected = true
             lastSelectedAnnotation = annotation
             annotationSelectionTimestamp = currentTime
             
-            // Immediately show the event detail view
-            parent.showEventSheet = true
-            
             // Deselect the annotation to prevent callout issues
             mapView.deselectAnnotation(annotation, animated: false)
+            
+            // Add a small delay to ensure the event is properly set before showing the sheet
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Double-check that we still have the event (defensive programming)
+                if self.parent.selectedEvent != nil {
+                    self.logger.debug("Showing event sheet for: '\(eventTitle)' (id: \(eventId))")
+                    // Now show the event detail view after a slight delay
+                    self.parent.showEventSheet = true
+                } else {
+                    self.logger.error("Failed to set selectedEvent before showing sheet")
+                }
+            }
         }
         
         public func mapView(_ mapView: MKMapView, didDeselect view: MKAnnotationView) {
@@ -530,6 +539,15 @@ struct MapViewRepresentable: UIViewRepresentable {
         mapView.region = region
         mapView.showsUserLocation = true
         
+        // Enable user location heading indicator only if setting is enabled
+        if MapSettings.shared.showHeadingIndicator {
+            mapView.userTrackingMode = .followWithHeading
+            logger.debug("Heading indicator enabled at startup")
+        } else {
+            mapView.userTrackingMode = .follow
+            logger.debug("Heading indicator disabled at startup")
+        }
+        
         // Configure the map to prioritize showing all pins
         mapView.preferredConfiguration = MKStandardMapConfiguration()
         
@@ -565,6 +583,21 @@ struct MapViewRepresentable: UIViewRepresentable {
             uiView.setRegion(region, animated: false)
         }
         
+        // Update heading display based on settings and heading availability
+        if MapSettings.shared.showHeadingIndicator {
+            if let heading = LocationService.shared.currentHeading {
+                // Update the user location view to show heading indicator
+                uiView.userTrackingMode = .followWithHeading
+                logger.debug("Updated user heading display: \(heading.trueHeading)°")
+            }
+        } else {
+            // Disable heading display when setting is off
+            if uiView.userTrackingMode == .followWithHeading {
+                uiView.userTrackingMode = .follow
+                logger.debug("Disabled heading display due to settings")
+            }
+        }
+        
         // Position the compass in the top right corner
         // This needs to be done here because we need the frame to be set
         if let compassView = uiView.subviews.first(where: { $0 is MKCompassButton }) {
@@ -587,13 +620,14 @@ struct MapViewRepresentable: UIViewRepresentable {
             logger.debug("Annotation sets differ - updating annotations")
             logger.debug("Existing IDs count: \(existingEventIds.count), New IDs count: \(newEventIds.count)")
             
-            // Preserve selection state
+            // Preserve selection state and ensure we have the full event object
             var selectedEventId: String? = nil
-            for annotation in uiView.selectedAnnotations {
-                if let eventAnnotation = annotation as? EventAnnotation {
-                    selectedEventId = eventAnnotation.event.id
-                    break
-                }
+            if let currentEvent = selectedEvent {
+                selectedEventId = currentEvent.id
+                logger.debug("Currently selected event: '\(currentEvent.title)' (id: \(currentEvent.id))")
+            } else if let lastSelected = context.coordinator.lastSelectedAnnotation {
+                selectedEventId = lastSelected.event.id
+                logger.debug("Using last selected annotation: '\(lastSelected.event.title)' (id: \(lastSelected.event.id))")
             }
             
             // Find annotations to remove (exist on map but not in new data)
@@ -644,10 +678,26 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
             
             // Re-select previously selected annotation if it exists in new annotations
-            if let eventId = selectedEventId,
-               let newAnnotation = uiView.annotations.compactMap({ $0 as? EventAnnotation }).first(where: { $0.event.id == eventId }) {
-                uiView.selectAnnotation(newAnnotation, animated: false)
-                logger.debug("Re-selected annotation for '\(newAnnotation.event.title)'")
+            if let eventId = selectedEventId {
+                // First update the selectedEvent with the refreshed event object from our events array
+                if selectedEvent == nil || selectedEvent?.id == eventId {
+                    if let updatedEvent = events.first(where: { $0.id == eventId }) {
+                        logger.debug("Updating selectedEvent with fresh data for event: '\(updatedEvent.title)'")
+                        selectedEvent = updatedEvent
+                    }
+                }
+                
+                // Now find and select the annotation
+                if let newAnnotation = uiView.annotations.compactMap({ $0 as? EventAnnotation }).first(where: { $0.event.id == eventId }) {
+                    // Store the annotation in the coordinator before selecting
+                    context.coordinator.lastSelectedAnnotation = newAnnotation
+                    
+                    // Select with a small delay to avoid race conditions
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        uiView.selectAnnotation(newAnnotation, animated: false)
+                        logger.debug("Re-selected annotation for '\(newAnnotation.event.title)'")
+                    }
+                }
             }
         } else {
             logger.debug("No annotation updates needed - same events with same IDs")
