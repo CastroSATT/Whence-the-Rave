@@ -10,5 +10,11 @@
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Whence the Rave? needs your location to find music events near you and show your position on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location is used to find nearby music events, show your position on the map, and calculate distance to venues.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Enable notifications to receive reminders about upcoming events you're interested in.</string>
 </dict>
 </plist>

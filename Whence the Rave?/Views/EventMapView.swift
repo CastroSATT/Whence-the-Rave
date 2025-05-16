@@ -229,11 +229,56 @@ struct EventMapView: View {
         }
         .sheet(isPresented: $showEventSheet) {
             if let event = selectedEvent {
-                EventDetailView(event: event)
-                    .presentationDetents([.medium, .large])
-                    .onDisappear {
-                        logger.debug("Event detail sheet closed for event: \(event.id) - \(event.title)")
+                // Find the index of the selected event in the events array
+                let eventIndex = viewModel.events.firstIndex(where: { $0.id == event.id }) ?? 0
+                
+                EventDetailView(
+                    event: event,
+                    allEvents: viewModel.events,
+                    currentIndex: eventIndex,
+                    onEventChange: { newEvent in
+                        // Update the selected event when swiped
+                        selectedEvent = newEvent
+                        
+                        // If there's a venue with location, center the map on it
+                        if let venue = newEvent.venue, let location = venue.location {
+                            // Close the slide panel if it's open
+                            if showEventList {
+                                showEventList = false
+                            }
+                            
+                            // Calculate an offset coordinate to position the pin in the upper third
+                            let eventCoordinate = CLLocationCoordinate2D(
+                                latitude: location.latitude,
+                                longitude: location.longitude
+                            )
+                            
+                            // Use a slightly zoomed-in span for better visibility
+                            let span = MKCoordinateSpan(
+                                latitudeDelta: 0.015,
+                                longitudeDelta: 0.015
+                            )
+                            
+                            // Shift the center south to position the pin higher
+                            let latitudeOffset = span.latitudeDelta * 0.25
+                            let offsetCenter = CLLocationCoordinate2D(
+                                latitude: eventCoordinate.latitude - latitudeOffset,
+                                longitude: eventCoordinate.longitude
+                            )
+                            
+                            // Update the map region with the offset center
+                            logger.debug("Centering map on swiped event: \(newEvent.title) with upper third positioning")
+                            region = MKCoordinateRegion(
+                                center: offsetCenter,
+                                span: span
+                            )
+                        }
                     }
+                )
+                .presentationDetents([.medium, .large])
+                .onDisappear {
+                    logger.debug("Event detail sheet closed for event: \(event.id) - \(event.title)")
+                }
             } else {
                 // This should not happen, but log it if it does
                 Text("Error: No event selected")
@@ -252,6 +297,43 @@ struct EventMapView: View {
                 logger.error("Sheet shown but selectedEvent is nil - will dismiss automatically")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     showEventSheet = false
+                }
+            }
+        }
+        // Add a handler for when the selectedEvent changes
+        .onChange(of: selectedEvent) { oldValue, newValue in
+            if let event = newValue, let venue = event.venue, let location = venue.location {
+                // Close the slide panel when an event is selected
+                if showEventList {
+                    logger.debug("Event selected from slide panel - closing panel")
+                    showEventList = false
+                    
+                    // Get the actual event coordinate
+                    let eventCoordinate = CLLocationCoordinate2D(
+                        latitude: location.latitude,
+                        longitude: location.longitude
+                    )
+                    
+                    // Use a slightly zoomed-in span for better visibility
+                    let span = MKCoordinateSpan(
+                        latitudeDelta: 0.015,
+                        longitudeDelta: 0.015
+                    )
+                    
+                    // Calculate an offset coordinate to position the pin in the upper third of the screen
+                    // Shift the center south (decrease latitude) to position the pin higher in the view
+                    let latitudeOffset = span.latitudeDelta * 0.25 // This moves the pin to roughly the upper third
+                    let offsetCenter = CLLocationCoordinate2D(
+                        latitude: eventCoordinate.latitude - latitudeOffset,
+                        longitude: eventCoordinate.longitude
+                    )
+                    
+                    // Update the map region with the offset center
+                    logger.debug("Centering map on selected event: \(event.title) with upper third positioning")
+                    region = MKCoordinateRegion(
+                        center: offsetCenter,
+                        span: span
+                    )
                 }
             }
         }

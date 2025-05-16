@@ -694,8 +694,8 @@ struct MapViewRepresentable: UIViewRepresentable {
                     
                     // Select with a small delay to avoid race conditions
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        uiView.selectAnnotation(newAnnotation, animated: false)
-                        logger.debug("Re-selected annotation for '\(newAnnotation.event.title)'")
+                uiView.selectAnnotation(newAnnotation, animated: false)
+                logger.debug("Re-selected annotation for '\(newAnnotation.event.title)'")
                     }
                 }
             }

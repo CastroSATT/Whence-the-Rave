@@ -11,6 +11,9 @@ struct NotificationsManagerView: View {
     @State private var selectedEventId: String? = nil
     @State private var navigateToEvent = false
     
+    // Add reference to developer mode
+    @ObservedObject private var devMode = DeveloperMode.shared
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -80,8 +83,8 @@ struct NotificationsManagerView: View {
                                 .foregroundColor(.gray.opacity(0.7))
                                 .multilineTextAlignment(.center)
                             
-                            // Debug message
-                            if !debugMessage.isEmpty {
+                            // Debug message - only show when dev mode is enabled
+                            if !debugMessage.isEmpty && devMode.isEnabled {
                                 Text(debugMessage)
                                     .font(.system(.caption2, design: .monospaced))
                                     .foregroundColor(.pink.opacity(0.8))
@@ -89,23 +92,33 @@ struct NotificationsManagerView: View {
                                     .multilineTextAlignment(.center)
                             }
                             
-                            // Test notification button for debugging
-                            Button {
-                                createTestNotification()
-                            } label: {
-                                Text("CREATE TEST NOTIFICATION")
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color.pink.opacity(0.6))
-                                    .cornerRadius(8)
+                            // Test notification button - only show when dev mode is enabled
+                            if devMode.isEnabled {
+                                Button {
+                                    createTestNotification()
+                                } label: {
+                                    Text("CREATE TEST NOTIFICATION")
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.pink.opacity(0.6))
+                                        .cornerRadius(8)
+                                }
+                                .padding(.top, 20)
                             }
-                            .padding(.top, 20)
                         }
                         Spacer()
                     } else {
                         List {
+                            // Show debug message at the top of the list if dev mode is enabled
+                            if !debugMessage.isEmpty && devMode.isEnabled {
+                                Text(debugMessage)
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .foregroundColor(.pink.opacity(0.8))
+                                    .listRowBackground(Color.black.opacity(0.8))
+                            }
+                            
                             ForEach(activeNotifications) { notification in
                                 NavigationLink(destination: EventDetailLoader(eventId: notification.eventId)) {
                                     NotificationRow(notification: notification)
@@ -119,6 +132,22 @@ struct NotificationsManagerView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
+                            }
+                            
+                            // Add test notification button at the bottom if dev mode is enabled
+                            if devMode.isEnabled {
+                                Button {
+                                    createTestNotification()
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "bell.badge.fill")
+                                            .foregroundColor(.pink)
+                                        Text("CREATE TEST NOTIFICATION")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .listRowBackground(Color.black.opacity(0.8))
                             }
                         }
                         .listStyle(.plain)

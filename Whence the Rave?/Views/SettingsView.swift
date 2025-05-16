@@ -10,6 +10,24 @@ enum MapDistanceUnit: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+// Create a DeveloperMode class as a singleton to store the state
+class DeveloperMode: ObservableObject {
+    static let shared = DeveloperMode()
+    
+    @Published var isEnabled = false
+    @AppStorage("devModeEnabled") private var storedDevMode = false
+    
+    private init() {
+        // Load saved state
+        isEnabled = storedDevMode
+    }
+    
+    func toggleDevMode() {
+        isEnabled.toggle()
+        storedDevMode = isEnabled
+    }
+}
+
 struct SettingsView: View {
     // Create a logger for debugging
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whencetheraves", category: "SettingsView")
@@ -41,6 +59,11 @@ struct SettingsView: View {
     
     // State to track the selected distance unit from MapSettings
     @State private var selectedDistanceUnit: String
+    
+    // Developer mode
+    @StateObject private var devMode = DeveloperMode.shared
+    @State private var versionTapCount = 0
+    @State private var showDevModeActivated = false
     
     // Initialize with the current MapSettings value
     init(viewModel: EventViewModel) {
@@ -500,7 +523,7 @@ struct SettingsView: View {
                 }
                         .disabled(isLoadingGenres)
                     }
-            }
+                }
                 .listRowBackground(Color.black.opacity(0.8))
                 .textCase(nil)
                 
@@ -543,6 +566,25 @@ struct SettingsView: View {
                     Text(appVersion)
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(.green)
+                }
+                .contentShape(Rectangle()) // Make the entire HStack tappable
+                .onTapGesture {
+                    // Count taps
+                    versionTapCount += 1
+                    
+                    // If tapped 10 times, toggle developer mode
+                    if versionTapCount >= 10 {
+                        if !devMode.isEnabled {
+                            // If not already enabled, turn on dev mode
+                            devMode.toggleDevMode()
+                            showDevModeActivated = true
+                        } else {
+                            // If already enabled, turn off dev mode
+                            devMode.toggleDevMode()
+                        }
+                        // Reset counter
+                        versionTapCount = 0
+                    }
                 }
                 
                     Button {
@@ -619,6 +661,11 @@ struct SettingsView: View {
             AreaPickerView(selectedArea: $viewModel.selectedArea)
                 .presentationDetents([.medium, .large])
         }
+        .alert("Developer Mode", isPresented: $showDevModeActivated) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Developer mode activated! Additional debugging features are now available.")
+        }
         .onAppear {
             isLoadingAreas = locationService.isLoadingAreas
             isLoadingGenres = genreService.isLoadingGenres
@@ -646,6 +693,89 @@ struct SettingsView: View {
                 displayGenreUpdateResult()
             }
         }
+        
+        // Developer section - only visible when developer mode is enabled
+        if devMode.isEnabled {
+            Section {
+                // Neo-punk section header
+                HStack {
+                    Text("DEVELOPER")
+                        .font(.system(.headline, design: .monospaced))
+                        .fontWeight(.black)
+                        .kerning(2)
+                        .foregroundColor(.pink)
+                    
+                    Spacer()
+                    
+                    Rectangle()
+                        .fill(LinearGradient(
+                            gradient: Gradient(colors: [.pink, .clear]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
+                        .frame(height: 1.5)
+                        .padding(.leading, 8)
+                }
+                .padding(.vertical, 10)
+                .listRowBackground(Color.black)
+                
+                // Debug logging toggle
+                HStack {
+                    Image(systemName: "terminal")
+                        .foregroundColor(.pink)
+                        .font(.system(size: 14))
+                    
+                    Text("VERBOSE LOGGING")
+                        .font(.system(.caption, design: .monospaced))
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: .constant(true)) // Replace with actual debug logging toggle
+                        .labelsHidden()
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                }
+                
+                // API Request Info
+                HStack {
+                    Image(systemName: "network")
+                        .foregroundColor(.pink)
+                        .font(.system(size: 14))
+                    
+                    Text("API ENDPOINT")
+                        .font(.system(.caption, design: .monospaced))
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Text(Constants.raGraphQLEndpoint)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.green)
+                }
+                
+                // Run diagnostics button
+                Button {
+                    print("Running advanced diagnostics...")
+                    // Add advanced diagnostics code here
+                } label: {
+                    HStack {
+                        Image(systemName: "hammer.fill")
+                            .foregroundColor(.pink)
+                            .font(.system(size: 14))
+                        
+                        Text("RUN DIAGNOSTICS")
+                            .font(.system(.caption, design: .monospaced))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .listRowBackground(Color.black.opacity(0.8))
+            .textCase(nil)
+        }
     }
     
     private var locationStatusString: String {
@@ -670,7 +800,11 @@ struct SettingsView: View {
     private var appVersion: String {
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-            return "\(version) (\(build))"
+            if devMode.isEnabled {
+                return "\(version) (\(build)) DEV"
+            } else {
+                return "\(version) (\(build))"
+            }
         }
         return "Unknown"
     }
