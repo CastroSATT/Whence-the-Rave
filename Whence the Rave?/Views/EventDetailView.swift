@@ -2,6 +2,9 @@ import SwiftUI
 import MapKit
 import UserNotifications
 
+// Event detail venue map zoom — higher = zoomed out (e.g. 0.01 tight, 0.015 wider, 0.02 much wider)
+private let eventDetailMapSpanDelta = 0.01
+
 struct EventDetailView: View {
     let event: RAEvent
     // Add parameters to support event cycling
@@ -42,11 +45,11 @@ struct EventDetailView: View {
             )
             _mapRegion = State(initialValue: MKCoordinateRegion(
                 center: initialCoordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                span: MKCoordinateSpan(latitudeDelta: eventDetailMapSpanDelta, longitudeDelta: eventDetailMapSpanDelta)
             ))
             _mapCameraPosition = State(initialValue: .region(MKCoordinateRegion(
                 center: initialCoordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                span: MKCoordinateSpan(latitudeDelta: eventDetailMapSpanDelta, longitudeDelta: eventDetailMapSpanDelta)
             )))
         } else {
             // Default to a generic region if no venue location
@@ -84,6 +87,10 @@ struct EventDetailView: View {
         return allEvents[nextIndex]
     }
     
+    private var isSinglePageCarousel: Bool {
+        allEvents.isEmpty || allEvents.count == 1
+    }
+    
     // Calculate progress during drag (0 means no drag, +1/-1 means full drag)
     private var swipeProgress: CGFloat {
         let screenWidth = UIScreen.main.bounds.width
@@ -113,9 +120,10 @@ struct EventDetailView: View {
                     }
                 }
                 .frame(width: geometry.size.width, alignment: .leading)
-                .offset(x: -1 * geometry.size.width + offset + dragOffset)
+                .offset(x: (isSinglePageCarousel ? 0 : -geometry.size.width) + offset + dragOffset)
                 
                 // Swipe indicators for visual feedback
+                if !isSinglePageCarousel {
                 HStack(spacing: 0) {
                     // Left indicator
                     Rectangle()
@@ -144,6 +152,7 @@ struct EventDetailView: View {
                         .opacity(swipeProgress < 0 ? min(-swipeProgress * 1.5, 0.8) : 0)
                 }
                 .edgesIgnoringSafeArea(.horizontal)
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -165,6 +174,7 @@ struct EventDetailView: View {
         .gesture(
             DragGesture(minimumDistance: 10, coordinateSpace: .global)
                 .onChanged { value in
+                    guard allEvents.count > 1 else { return }
                     // Check if the drag is primarily horizontal
                     if abs(value.translation.width) > abs(value.translation.height) * 1.5 {
                         dragOffset = value.translation.width
@@ -176,6 +186,7 @@ struct EventDetailView: View {
                     }
                 }
                 .onEnded { value in
+                    guard allEvents.count > 1 else { return }
                     // Calculate final offset and update page if needed
                     let predictedEndTranslation = value.predictedEndTranslation.width
                     let screenWidth = UIScreen.main.bounds.width
@@ -286,13 +297,13 @@ struct EventDetailView: View {
             // Update both map representations
             mapRegion = MKCoordinateRegion(
                 center: newCoordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                span: MKCoordinateSpan(latitudeDelta: eventDetailMapSpanDelta, longitudeDelta: eventDetailMapSpanDelta)
             )
             
             if #available(iOS 17.0, *) {
                 mapCameraPosition = .region(MKCoordinateRegion(
                     center: newCoordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    span: MKCoordinateSpan(latitudeDelta: eventDetailMapSpanDelta, longitudeDelta: eventDetailMapSpanDelta)
                 ))
             }
         }
@@ -532,7 +543,7 @@ struct EventContentView: View {
                 
                 // iOS 17+ compatible map with fallback
                 if #available(iOS 17.0, *) {
-                    Map {
+                    Map(position: $mapCameraPosition) {
                         Marker(venue.name, coordinate: CLLocationCoordinate2D(
                             latitude: venueLocation.latitude,
                             longitude: venueLocation.longitude
@@ -562,7 +573,7 @@ struct EventContentView: View {
                             latitude: venueLocation.latitude,
                             longitude: venueLocation.longitude
                         ),
-                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                        span: MKCoordinateSpan(latitudeDelta: eventDetailMapSpanDelta, longitudeDelta: eventDetailMapSpanDelta)
                     )), annotationItems: [venue]) { venueItem in
                         MapMarker(coordinate: CLLocationCoordinate2D(
                             latitude: venueItem.location?.latitude ?? 0,

@@ -8,15 +8,13 @@ struct NotificationsManagerView: View {
     @State private var isLoading = true
     @State private var debugMessage: String = ""
     @State private var viewAppeared = false
-    @State private var selectedEventId: String? = nil
-    @State private var navigateToEvent = false
+    @State private var selectedEvent: SelectedEventDetail?
     
     // Add reference to developer mode
     @ObservedObject private var devMode = DeveloperMode.shared
     
     var body: some View {
-        NavigationView {
-            ZStack {
+        ZStack {
                 // Neo-punk background
                 Color.black.edgesIgnoringSafeArea(.all)
                 
@@ -120,11 +118,13 @@ struct NotificationsManagerView: View {
                             }
                             
                             ForEach(activeNotifications) { notification in
-                                NavigationLink(destination: EventDetailLoader(eventId: notification.eventId)) {
+                                Button {
+                                    selectedEvent = SelectedEventDetail(eventId: notification.eventId)
+                                } label: {
                                     NotificationRow(notification: notification)
-                                        .listRowBackground(Color.black.opacity(0.8))
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .listRowBackground(Color.black.opacity(0.8))
                                 .swipeActions {
                                     Button(role: .destructive) {
                                         deleteNotification(notification)
@@ -154,10 +154,11 @@ struct NotificationsManagerView: View {
                         .background(Color.black)
                     }
                 }
-            }
-            .navigationBarHidden(true)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .sheet(item: $selectedEvent) { event in
+            EventDetailLoader(eventId: event.eventId)
+                .presentationDetents([.medium, .large])
+        }
         .task {
             // Load notifications on initial view appearance
             print("🔔 DEBUG: NotificationsManagerView - task triggered")
@@ -363,6 +364,11 @@ struct NotificationsManagerView: View {
             }
         }
     }
+}
+
+private struct SelectedEventDetail: Identifiable {
+    let eventId: String
+    var id: String { eventId }
 }
 
 struct NotificationRow: View {

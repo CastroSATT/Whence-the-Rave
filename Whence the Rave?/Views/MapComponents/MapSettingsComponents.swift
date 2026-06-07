@@ -6,8 +6,29 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
     case kilometers = "Kilometers"
     case meters = "Meters"
     case miles = "Miles"
+    case walkingTime = "Walking Time"
     
     public var id: String { self.rawValue }
+    
+    /// Average walking speed: 5 km/h
+    static let averageWalkingSpeedMetersPerMinute = 5000.0 / 60.0
+    
+    func walkingMinutes(fromMeters meters: Double) -> Double {
+        meters / Self.averageWalkingSpeedMetersPerMinute
+    }
+    
+    static func formatWalkingTime(minutes: Double) -> String {
+        let rounded = Int(minutes.rounded())
+        if rounded >= 60 {
+            let hours = rounded / 60
+            let remaining = rounded % 60
+            if remaining == 0 {
+                return hours == 1 ? "1 hr" : "\(hours) hr"
+            }
+            return "\(hours) hr \(remaining) min"
+        }
+        return "\(rounded) min"
+    }
     
     func convertMeters(_ meters: Double) -> Double {
         switch self {
@@ -17,18 +38,21 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
             return meters
         case .miles:
             return meters * 0.000621371
+        case .walkingTime:
+            return walkingMinutes(fromMeters: meters)
         }
     }
     
     func formatDistance(_ meters: Double) -> String {
-        let value = convertMeters(meters)
         switch self {
         case .kilometers:
-            return String(format: "%.1f km", value)
+            return String(format: "%.1f km", convertMeters(meters))
         case .meters:
-            return String(format: "%.0f m", value)
+            return String(format: "%.0f m", convertMeters(meters))
         case .miles:
-            return String(format: "%.1f mi", value)
+            return String(format: "%.1f mi", convertMeters(meters))
+        case .walkingTime:
+            return Self.formatWalkingTime(minutes: walkingMinutes(fromMeters: meters))
         }
     }
 }

@@ -24,12 +24,14 @@ class DistanceLabelAnnotation: NSObject, MKAnnotation {
     public let title: String?
     public let subtitle: String?
     let circleType: CircleType
+    let showsWalkingIcon: Bool
     
-    init(coordinate: CLLocationCoordinate2D, distance: String, circleType: CircleType) {
+    init(coordinate: CLLocationCoordinate2D, distance: String, circleType: CircleType, showsWalkingIcon: Bool = false) {
         self.coordinate = coordinate
         self.title = distance
         self.subtitle = nil
         self.circleType = circleType
+        self.showsWalkingIcon = showsWalkingIcon
         super.init()
     }
 }
@@ -43,9 +45,10 @@ enum CircleType {
 
 // UIViewRepresentable that bridges to MKMapView
 struct MapViewRepresentable: UIViewRepresentable {
-    @Binding var region: MKCoordinateRegion
+    @ObservedObject var navigation: MapNavigationController
     @Binding var selectedEvent: RAEvent?
     @Binding var showEventSheet: Bool
+    @ObservedObject private var mapSettings = MapSettings.shared
     let events: [RAEvent]
     let showDistanceCircles: Bool
     let distanceUnit: DistanceUnit
@@ -58,6 +61,12 @@ struct MapViewRepresentable: UIViewRepresentable {
         private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whencetheraves", category: "MapViewCoordinator")
         private var distanceOverlays: [MKCircle] = []
         var isAnnotationSelected = false
+        var isProgrammaticRegionChange = false
+        var isProgrammaticTrackingChange = false
+        var userCancelledFollow = false
+        var wasFollowingUser = false
+        var followModeHasBeenApplied = false
+        var compassButton: MKCompassButton?
         var lastSelectedAnnotation: EventAnnotation?
         var annotationSelectionTimestamp: TimeInterval = 0
         // Dictionary to track circle types
@@ -67,6 +76,135 @@ struct MapViewRepresentable: UIViewRepresentable {
             self.parent = parent
             super.init()
             logger.debug("Map coordinator initialized")
+        }
+        
+        func applyProgrammaticRegion(_ newRegion: MKCoordinateRegion, on mapView: MKMapView) {
+            parent.navigation.markProgrammaticRegionApplied(newRegion)
+            if MapNavigationController.regionsAreApproximatelyEqual(mapView.region, newRegion) {
+                return
+            }
+            isProgrammaticRegionChange = true
+            mapView.setRegion(newRegion, animated: false)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isProgrammaticRegionChange = false
+            }
+        }
+        
+        func updateCompassDisplay(on mapView: MKMapView, isFollowingUser: Bool) {
+            guard let compassButton else { return }
+            
+            if isFollowingUser && MapSettings.shared.showHeadingIndicator {
+                compassButton.compassVisibility = .visible
+                mapView.isRotateEnabled = true
+            } else {
+                compassButton.compassVisibility = .hidden
+                mapView.isRotateEnabled = true
+            }
+        }
+        
+        func updateUserTracking(on mapView: MKMapView) {
+            if parent.navigation.isFollowingUser {
+                guard !userCancelledFollow else { return }
+                
+                let desiredMode: MKUserTrackingMode = MapSettings.shared.showHeadingIndicator ? .followWithHeading : .follow
+                guard mapView.userTrackingMode != desiredMode else { return }
+                
+                isProgrammaticTrackingChange = true
+                mapView.userTrackingMode = desiredMode
+                followModeHasBeenApplied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.isProgrammaticTrackingChange = false
+                }
+                return
+            }
+            
+            userCancelledFollow = false
+            followModeHasBeenApplied = false
+            
+            guard mapView.userTrackingMode != .none else { return }
+            
+            isProgrammaticTrackingChange = true
+            mapView.userTrackingMode = .none
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isProgrammaticTrackingChange = false
+            }
+        }
+        
+        private func circleBackgroundColor(for circleType: CircleType) -> UIColor {
+            switch circleType {
+            case .small:
+                return UIColor(red: 85/255, green: 187/255, blue: 85/255, alpha: 0.8)
+            case .medium:
+                return UIColor(red: 240/255, green: 196/255, blue: 67/255, alpha: 0.8)
+            case .large:
+                return UIColor(red: 240/255, green: 128/255, blue: 128/255, alpha: 0.8)
+            }
+        }
+        
+        private func configureDistanceLabelView(_ annotationView: MKAnnotationView, for labelAnnotation: DistanceLabelAnnotation) {
+            annotationView.subviews.forEach { $0.removeFromSuperview() }
+            
+            let backgroundColor = circleBackgroundColor(for: labelAnnotation.circleType)
+            let padding: CGFloat = 4
+            
+            let label = UILabel()
+            label.text = labelAnnotation.title
+            label.textColor = .white
+            label.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+            label.textAlignment = .center
+            label.backgroundColor = .clear
+            label.sizeToFit()
+            
+            let contentView: UIView
+            
+            if labelAnnotation.showsWalkingIcon {
+                let iconSize: CGFloat = 14
+                let spacing: CGFloat = 4
+                let contentWidth = padding + iconSize + spacing + label.frame.width + padding
+                let contentHeight = max(iconSize, label.frame.height) + (padding * 2)
+                
+                let container = UIView(frame: CGRect(x: 0, y: 0, width: contentWidth, height: contentHeight))
+                container.backgroundColor = backgroundColor
+                container.layer.cornerRadius = 8
+                container.layer.masksToBounds = true
+                
+                let iconConfig = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
+                let iconView = UIImageView(image: UIImage(systemName: "figure.walk", withConfiguration: iconConfig))
+                iconView.tintColor = .white
+                iconView.contentMode = .scaleAspectFit
+                iconView.frame = CGRect(
+                    x: padding,
+                    y: (contentHeight - iconSize) / 2,
+                    width: iconSize,
+                    height: iconSize
+                )
+                
+                label.frame = CGRect(
+                    x: padding + iconSize + spacing,
+                    y: (contentHeight - label.frame.height) / 2,
+                    width: label.frame.width,
+                    height: label.frame.height
+                )
+                
+                container.addSubview(iconView)
+                container.addSubview(label)
+                contentView = container
+            } else {
+                label.backgroundColor = backgroundColor
+                label.layer.cornerRadius = 8
+                label.layer.masksToBounds = true
+                label.frame = CGRect(
+                    x: 0,
+                    y: 0,
+                    width: label.frame.width + (padding * 2),
+                    height: label.frame.height + (padding * 2)
+                )
+                contentView = label
+            }
+            
+            annotationView.addSubview(contentView)
+            annotationView.frame = contentView.frame
+            annotationView.centerOffset = CGPoint(x: 0, y: -annotationView.frame.height / 2)
         }
         
         public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -83,61 +221,12 @@ struct MapViewRepresentable: UIViewRepresentable {
                 
                 if annotationView == nil {
                     annotationView = MKAnnotationView(annotation: labelAnnotation, reuseIdentifier: identifier)
-                    
-                    // Create a background for the text
-                    let label = UILabel()
-                    label.text = labelAnnotation.title
-                    label.textColor = .white
-                    label.font = UIFont.systemFont(ofSize: 12, weight: .bold)
-                    
-                    // Set color based on circle type - consistent colors regardless of radius
-                    switch labelAnnotation.circleType {
-                    case .small:
-                        label.backgroundColor = UIColor(red: 85/255, green: 187/255, blue: 85/255, alpha: 0.8) // Green
-                    case .medium:
-                        label.backgroundColor = UIColor(red: 240/255, green: 196/255, blue: 67/255, alpha: 0.8) // Amber
-                    case .large:
-                        label.backgroundColor = UIColor(red: 240/255, green: 128/255, blue: 128/255, alpha: 0.8) // Red
-                    }
-                    
-                    label.textAlignment = .center
-                    label.layer.cornerRadius = 8
-                    label.layer.masksToBounds = true
-                    label.sizeToFit()
-                    
-                    // Add padding
-                    let padding: CGFloat = 4
-                    let paddedFrame = CGRect(
-                        x: -padding,
-                        y: -padding,
-                        width: label.frame.width + (padding * 2),
-                        height: label.frame.height + (padding * 2)
-                    )
-                    label.frame = paddedFrame
-                    
-                    annotationView?.addSubview(label)
-                    annotationView?.frame = label.frame
-                    
-                    // Center the label
-                    annotationView?.centerOffset = CGPoint(x: 0, y: -annotationView!.frame.height / 2)
                 } else {
                     annotationView?.annotation = labelAnnotation
-                    
-                    // Update label if reusing an existing view
-                    if let label = annotationView?.subviews.first as? UILabel {
-                        // Update the label text
-                        label.text = labelAnnotation.title
-                        
-                        // Set color based on circle type - consistent colors regardless of radius
-                        switch labelAnnotation.circleType {
-                        case .small:
-                            label.backgroundColor = UIColor(red: 85/255, green: 187/255, blue: 85/255, alpha: 0.8) // Green
-                        case .medium:
-                            label.backgroundColor = UIColor(red: 240/255, green: 196/255, blue: 67/255, alpha: 0.8) // Amber
-                        case .large:
-                            label.backgroundColor = UIColor(red: 240/255, green: 128/255, blue: 128/255, alpha: 0.8) // Red
-                        }
-                    }
+                }
+                
+                if let annotationView = annotationView {
+                    configureDistanceLabelView(annotationView, for: labelAnnotation)
                 }
                 
                 return annotationView
@@ -329,13 +418,46 @@ struct MapViewRepresentable: UIViewRepresentable {
             logger.debug("Map region changed to: \(mapView.region.center.latitude), \(mapView.region.center.longitude), span: \(mapView.region.span.latitudeDelta), \(mapView.region.span.longitudeDelta)")
             logger.debug("isAnnotationSelected during region change: \(self.isAnnotationSelected)")
             
-            // If an annotation is selected, don't update parent's region to prevent jumps
-            if !self.isAnnotationSelected {
-                // Only update the parent region if the change wasn't due to annotation selection
-                parent.region = mapView.region
-                logger.debug("Updated parent region to match map's current region")
-            } else {
-                logger.debug("Skipped updating parent region due to annotation selection")
+            guard !isProgrammaticRegionChange, !isAnnotationSelected else {
+                logger.debug("Skipped region sync (programmatic or annotation selection)")
+                return
+            }
+            
+            if parent.navigation.isFollowingUser {
+                if mapView.userTrackingMode == .none
+                    && followModeHasBeenApplied
+                    && !userCancelledFollow {
+                    userCancelledFollow = true
+                    parent.navigation.followModeDisabledByMapKit(at: mapView.region)
+                } else if mapView.userTrackingMode != .none {
+                    parent.navigation.syncRegionFromMap(mapView.region)
+                }
+                return
+            }
+            
+            parent.navigation.userDidPan(to: mapView.region)
+            logger.debug("Synced user pan to navigation controller")
+        }
+        
+        public func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) {
+            guard !isProgrammaticTrackingChange else { return }
+            guard mode == .none && parent.navigation.isFollowingUser else { return }
+            
+            userCancelledFollow = true
+            parent.navigation.followModeDisabledByMapKit(at: mapView.region)
+        }
+        
+        func stopFollowingAndFreezeRegion(on mapView: MKMapView) {
+            userCancelledFollow = true
+            followModeHasBeenApplied = false
+            isProgrammaticTrackingChange = true
+            isProgrammaticRegionChange = true
+            mapView.userTrackingMode = .none
+            parent.navigation.followModeDisabledByMapKit(at: mapView.region)
+            mapView.setRegion(mapView.region, animated: false)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isProgrammaticTrackingChange = false
+                self.isProgrammaticRegionChange = false
             }
         }
         
@@ -385,6 +507,10 @@ struct MapViewRepresentable: UIViewRepresentable {
                 radiusSmall = 1609.34  // 1 mile
                 radiusMedium = 4828.03 // 3 miles
                 radiusLarge = 8046.72  // 5 miles
+            case .walkingTime:
+                radiusSmall = 833.33   // ~10 min at 5 km/h
+                radiusMedium = 2500    // ~30 min
+                radiusLarge = 5000     // ~1 hr
             }
             
             // Create circles with appropriate radii
@@ -415,6 +541,10 @@ struct MapViewRepresentable: UIViewRepresentable {
                 smallDistance = 1.0  // 1mi
                 mediumDistance = 3.0 // 3mi
                 largeDistance = 5.0  // 5mi
+            case .walkingTime:
+                smallDistance = 10   // 10 min
+                mediumDistance = 30  // 30 min
+                largeDistance = 60   // 1 hr
             }
             
             // Format labels with clean, round numbers
@@ -432,9 +562,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             let largeLabelCoord = calculateCoordinate(from: userLocation, atDistanceMeters: radiusLarge, bearingDegrees: 0)
             
             // Create label annotations with appropriate types
-            let smallAnnotation = DistanceLabelAnnotation(coordinate: smallLabelCoord, distance: smallLabel, circleType: .small)
-            let mediumAnnotation = DistanceLabelAnnotation(coordinate: mediumLabelCoord, distance: mediumLabel, circleType: .medium)
-            let largeAnnotation = DistanceLabelAnnotation(coordinate: largeLabelCoord, distance: largeLabel, circleType: .large)
+            let showsWalkingIcon = unit == .walkingTime
+            let smallAnnotation = DistanceLabelAnnotation(coordinate: smallLabelCoord, distance: smallLabel, circleType: .small, showsWalkingIcon: showsWalkingIcon)
+            let mediumAnnotation = DistanceLabelAnnotation(coordinate: mediumLabelCoord, distance: mediumLabel, circleType: .medium, showsWalkingIcon: showsWalkingIcon)
+            let largeAnnotation = DistanceLabelAnnotation(coordinate: largeLabelCoord, distance: largeLabel, circleType: .large, showsWalkingIcon: showsWalkingIcon)
             
             // Add labels to map
             mapView.addAnnotations([smallAnnotation, mediumAnnotation, largeAnnotation])
@@ -451,6 +582,8 @@ struct MapViewRepresentable: UIViewRepresentable {
                 return String(format: "%.0f m", distance)
             case .miles:
                 return String(format: "%.1f mi", distance)
+            case .walkingTime:
+                return DistanceUnit.formatWalkingTime(minutes: distance)
             }
         }
         
@@ -512,14 +645,14 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
     }
     
-    init(region: Binding<MKCoordinateRegion>, 
+    init(navigation: MapNavigationController,
                 selectedEvent: Binding<RAEvent?>, 
-                showEventSheet: Binding<Bool>, 
+                showEventSheet: Binding<Bool>,
                 events: [RAEvent], 
                 showDistanceCircles: Bool, 
                 distanceUnit: DistanceUnit, 
                 onError: ((String) -> Void)? = nil) {
-        self._region = region
+        self.navigation = navigation
         self._selectedEvent = selectedEvent
         self._showEventSheet = showEventSheet
         self.events = events
@@ -536,23 +669,23 @@ struct MapViewRepresentable: UIViewRepresentable {
         logger.debug("Creating MKMapView")
         let mapView = MKMapView()
         mapView.delegate = context.coordinator
-        mapView.region = region
+        mapView.region = navigation.region
         mapView.showsUserLocation = true
-        
-        // Enable user location heading indicator only if setting is enabled
-        if MapSettings.shared.showHeadingIndicator {
-            mapView.userTrackingMode = .followWithHeading
-            logger.debug("Heading indicator enabled at startup")
-        } else {
-            mapView.userTrackingMode = .follow
-            logger.debug("Heading indicator disabled at startup")
-        }
+        mapView.userTrackingMode = .none
         
         // Configure the map to prioritize showing all pins
         mapView.preferredConfiguration = MKStandardMapConfiguration()
         
-        // Show compass in the top right
-        mapView.showsCompass = true
+        mapView.showsCompass = false
+        let compassButton = MKCompassButton(mapView: mapView)
+        compassButton.compassVisibility = MapSettings.shared.showHeadingIndicator ? .visible : .hidden
+        compassButton.translatesAutoresizingMaskIntoConstraints = false
+        mapView.addSubview(compassButton)
+        NSLayoutConstraint.activate([
+            compassButton.trailingAnchor.constraint(equalTo: mapView.trailingAnchor, constant: -10),
+            compassButton.topAnchor.constraint(equalTo: mapView.topAnchor, constant: 50)
+        ])
+        context.coordinator.compassButton = compassButton
         
         // Register reusable annotation views
         mapView.register(
@@ -575,34 +708,34 @@ struct MapViewRepresentable: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        logger.debug("Updating MKMapView: \(events.count) events, region: \(region.center.latitude), \(region.center.longitude)")
+        context.coordinator.parent = self
         
-        // Only update the map region if this is not triggered by user selecting an annotation
-        if !context.coordinator.isAnnotationSelected {
-            // Use a non-animated update to prevent jumps
-            uiView.setRegion(region, animated: false)
+        let wasFollowing = context.coordinator.wasFollowingUser
+        let isFollowing = navigation.isFollowingUser
+        
+        if wasFollowing && !isFollowing {
+            context.coordinator.stopFollowingAndFreezeRegion(on: uiView)
+        } else if isFollowing && !wasFollowing {
+            context.coordinator.userCancelledFollow = false
         }
         
-        // Update heading display based on settings and heading availability
-        if MapSettings.shared.showHeadingIndicator {
-            if let heading = LocationService.shared.currentHeading {
-                // Update the user location view to show heading indicator
-                uiView.userTrackingMode = .followWithHeading
-                logger.debug("Updated user heading display: \(heading.trueHeading)°")
-            }
-        } else {
-            // Disable heading display when setting is off
-            if uiView.userTrackingMode == .followWithHeading {
-                uiView.userTrackingMode = .follow
-                logger.debug("Disabled heading display due to settings")
-            }
+        context.coordinator.wasFollowingUser = isFollowing
+        
+        logger.debug("Updating MKMapView: \(events.count) events, following: \(isFollowing), tracking: \(uiView.userTrackingMode.rawValue)")
+        
+        if !isFollowing,
+           !context.coordinator.isAnnotationSelected,
+           let pendingRegion = navigation.consumePendingRegion() {
+            context.coordinator.applyProgrammaticRegion(pendingRegion, on: uiView)
         }
         
-        // Position the compass in the top right corner
-        // This needs to be done here because we need the frame to be set
-        if let compassView = uiView.subviews.first(where: { $0 is MKCompassButton }) {
-            compassView.frame.origin = CGPoint(x: uiView.frame.width - compassView.frame.width - 10, y: 50)
+        if isFollowing {
+            context.coordinator.updateUserTracking(on: uiView)
+        } else if uiView.userTrackingMode != .none {
+            context.coordinator.updateUserTracking(on: uiView)
         }
+        
+        context.coordinator.updateCompassDisplay(on: uiView, isFollowingUser: isFollowing)
         
         // Smart annotation management - only update annotations when necessary
         let existingEventAnnotations = uiView.annotations.compactMap { $0 as? EventAnnotation }

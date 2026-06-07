@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import CoreLocation
 import SwiftUI
+import Network
 
 class EventViewModel: ObservableObject {
     @Published var events: [RAEvent] = []
@@ -11,11 +12,16 @@ class EventViewModel: ObservableObject {
     @Published var searchDate: SearchDateOption = .today
     @Published var sortOption: SortOption = .popular
     @Published var isAutoSelectingArea: Bool = false
+    @Published var isUsingCachedData: Bool = false
     
     private var cancellables = Set<AnyCancellable>()
     private let apiClient = RAApiClient.shared
     private let locationService = LocationService.shared
     private let logger = AppLogger.shared
+    private let eventCacheKey = "lastSuccessfulEventCache"
+    private let eventCacheMetadataKey = "lastSuccessfulEventCacheMeta"
+    private let networkMonitor = NWPathMonitor()
+    private var isNetworkAvailable = true
     
     enum SearchDateOption: String, CaseIterable, Identifiable {
         case today = "Today"
@@ -56,6 +62,9 @@ class EventViewModel: ObservableObject {
     init() {
         logger.info("EventViewModel initialized")
         
+        // Setup network monitoring
+        setupNetworkMonitoring()
+        
         // Track published property changes
         setupPropertyObservers()
         
@@ -80,6 +89,17 @@ class EventViewModel: ObservableObject {
                 self.autoSelectNearestArea()
             }
             .store(in: &cancellables)
+    }
+    
+    private func setupNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isNetworkAvailable = path.status == .satisfied
+                self?.logger.info("Network status changed: \(path.status == .satisfied ? "Connected" : "Disconnected")")
+            }
+        }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        networkMonitor.start(queue: queue)
     }
     
     private func setupPropertyObservers() {
@@ -117,6 +137,56 @@ class EventViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    // Cache the last successful search results
+    private func cacheLastSuccessfulSearch(events: [RAEvent], areaId: String, dateRange: String, sortOption: String) {
+        do {
+            let encoder = JSONEncoder()
+            let eventsData = try encoder.encode(events)
+            
+            // Save events data
+            UserDefaults.standard.set(eventsData, forKey: eventCacheKey)
+            
+            // Save metadata
+            let metadata: [String: Any] = [
+                "areaId": areaId,
+                "dateRange": dateRange,
+                "sortOption": sortOption
+            ]
+            UserDefaults.standard.set(metadata, forKey: eventCacheMetadataKey)
+            
+            logger.info("Cached \(events.count) events from last successful search")
+        } catch {
+            logger.error("Failed to cache events: \(error)")
+        }
+    }
+    
+    // Try to load cached events if network is unavailable
+    private func loadCachedEventsIfNeeded() -> Bool {
+        guard let cachedData = UserDefaults.standard.data(forKey: eventCacheKey) else {
+            logger.warning("No cached events found")
+            return false
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            let cachedEvents = try decoder.decode([RAEvent].self, from: cachedData)
+            
+            // Update the UI with cached data
+            self.events = cachedEvents
+            self.isLoading = false
+            self.error = nil
+            
+            // Set flag that we're using cached data (for color indicator)
+            self.isUsingCachedData = true
+            
+            logger.info("Loaded \(cachedEvents.count) events from cache")
+            return true
+        } catch {
+            logger.error("Failed to load cached events: \(error)")
+            return false
+        }
+    }
+    
     func findEvents() {
         guard let selectedArea = selectedArea else {
             logger.warning("Attempted to search without selecting an area")
@@ -128,6 +198,22 @@ class EventViewModel: ObservableObject {
         
         isLoading = true
         error = nil
+        
+        // If network is not available, try to use cached data
+        if !isNetworkAvailable {
+            logger.warning("No network connection - attempting to load cached data")
+            if loadCachedEventsIfNeeded() {
+                logger.info("Successfully loaded from cache due to no network")
+                return // Successfully loaded from cache
+            } else {
+                isLoading = false
+                error = "No network connection and no cached data available"
+                return
+            }
+        }
+        
+        // Reset cached data flag - we're trying to get live data
+        isUsingCachedData = false
         
         // Calculate date range from today
         let formatter = DateFormatter()
@@ -185,6 +271,11 @@ class EventViewModel: ObservableObject {
                 case .failure(let error):
                     self?.error = error.localizedDescription
                     self?.logger.error("Event search failed: \(error.localizedDescription)")
+                    
+                    // Try loading cached data on network failure
+                    if self?.loadCachedEventsIfNeeded() == true {
+                        self?.error = "Network error. Showing cached data."
+                    }
                 }
             },
             receiveValue: { [weak self] response in
@@ -208,6 +299,9 @@ class EventViewModel: ObservableObject {
                 let events = eventData.map { $0.event }
                 self?.events = events
                 
+                // Set flag to indicate we're using live data
+                self?.isUsingCachedData = false
+                
                 let totalResults = response.data?.eventListingsWithBumps?.eventListings.totalResults ?? 0
                 self?.logger.info("Received \(events.count) events (total results: \(totalResults))")
                 
@@ -215,6 +309,16 @@ class EventViewModel: ObservableObject {
                     self?.error = "No events found for this date range"
                 } else {
                     self?.error = nil
+                    
+                    // Cache successful search
+                    if let selectedArea = self?.selectedArea {
+                        self?.cacheLastSuccessfulSearch(
+                            events: events,
+                            areaId: selectedArea.id,
+                            dateRange: "\(dateFrom)_\(dateTo)",
+                            sortOption: (self?.sortOption.apiValue ?? "POPULAR")
+                        )
+                    }
                 }
                 
                 // Log summary of events by venue
@@ -363,5 +467,30 @@ class EventViewModel: ObservableObject {
         }
         
         isAutoSelectingArea = false
+    }
+    
+    // Provide client-side sorting for events
+    func getSortedEvents() -> [RAEvent] {
+        // Apply client-side sorting based on the selected sort option
+        switch sortOption {
+        case .popular:
+            // Explicitly sort by interestedCount in descending order
+            return events.sorted { $0.interestedCount > $1.interestedCount }
+        case .latest:
+            // Sort by date (most recent first)
+            return events.sorted { 
+                // Parse dates and compare them
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                
+                let date1 = dateFormatter.date(from: $0.date) ?? Date.distantPast
+                let date2 = dateFormatter.date(from: $1.date) ?? Date.distantPast
+                
+                return date1 > date2
+            }
+        case .alphabetical:
+            // Sort alphabetically by title
+            return events.sorted { $0.title.lowercased() < $1.title.lowercased() }
+        }
     }
 } 

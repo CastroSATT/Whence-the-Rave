@@ -4,11 +4,13 @@ import UserNotifications
 
 /// Represents the navigation tabs on the right side of the map
 struct NavigationTabsView: View {
+    @ObservedObject var mapNavigation: MapNavigationController
     // State bindings
     @Binding var showEventList: Bool
     @Binding var showNearbyEvents: Bool
     @Binding var dragOffset: CGFloat
     @Binding var showSettings: Bool
+    @ObservedObject private var mapSettings = MapSettings.shared
     @State private var showNotificationsManager: Bool = false
     @State private var activeNotificationCount: Int = 0
     
@@ -16,8 +18,42 @@ struct NavigationTabsView: View {
     private let logger = AppLogger.shared
     private let osLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whencetheraves", category: "NavigationTabsView")
     
-    // Actions
-    var onLocationButtonTap: () -> Void
+    @State private var suppressNextLocationTap = false
+    @State private var isHoldingLocation = false
+    @State private var locationFlashPhase = false
+    @State private var locationHoldFlashTimer: Timer?
+    
+    private var locationIconColor: Color {
+        if isHoldingLocation {
+            return locationFlashPhase ? .pink : .green
+        }
+        return mapNavigation.isFollowingUser ? .pink : .green
+    }
+    
+    private var locationBorderColors: [Color] {
+        if isHoldingLocation {
+            return locationFlashPhase ? [.pink, .orange, .green] : [.green, .blue, .pink]
+        }
+        return mapNavigation.isFollowingUser ? [.pink, .orange, .pink] : [.green, .blue, .pink]
+    }
+    
+    private func startLocationHoldFlash() {
+        isHoldingLocation = true
+        locationFlashPhase = true
+        locationHoldFlashTimer?.invalidate()
+        locationHoldFlashTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                locationFlashPhase.toggle()
+            }
+        }
+    }
+    
+    private func stopLocationHoldFlash() {
+        locationHoldFlashTimer?.invalidate()
+        locationHoldFlashTimer = nil
+        isHoldingLocation = false
+        locationFlashPhase = false
+    }
     
     var body: some View {
         VStack(spacing: 10) {
@@ -183,47 +219,13 @@ struct NavigationTabsView: View {
             }
             .accessibilityIdentifier("eventListPullTab")
             
-            // Location button
-            Button(action: {
-                osLogger.debug("📍 Location button tapped")
-                onLocationButtonTap()
-                osLogger.debug("Location button action completed")
-            }) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.black.opacity(0.8))
-                        .frame(width: 40, height: 80)
-                    
-                    VStack(spacing: 16) {
-                        Image(systemName: "location.magnifyingglass")
-                            .font(.system(size: 20))
-                            .foregroundColor(.green)
-                        
-                        Text("LOC")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.pink)
-                    }
-                    .padding(.vertical, 8)
+            locationTabButton
+                .onAppear {
+                    osLogger.debug("📱 Location button view initialized")
+                    osLogger.debug("Location button configuration - width: 40, height: 80, cornerRadius: 8")
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(
-                            LinearGradient(
-                                gradient: Gradient(colors: [.green, .blue, .pink]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 2
-                        )
-                )
-            }
-            .buttonStyle(BorderlessButtonStyle())
-            .shadow(color: .black.opacity(0.3), radius: 5, x: 2, y: 2)
-            .onAppear {
-                osLogger.debug("📱 Location button view initialized")
-                osLogger.debug("Location button configuration - width: 40, height: 80, cornerRadius: 8")
-            }
-            .accessibilityIdentifier("locationButton")
+                .accessibilityIdentifier("locationButton")
+                .accessibilityHint("Tap to center on your location. Press and hold for three seconds to follow your location.")
             
             // Settings button - only visible when panel is open
             Button(action: {
@@ -282,6 +284,67 @@ struct NavigationTabsView: View {
             // Refresh notification count every 30 seconds
             checkActiveNotifications()
         }
+    }
+    
+    private var locationTabButton: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.black.opacity(0.8))
+                .frame(width: 40, height: 80)
+            
+            VStack(spacing: 16) {
+                Image(systemName: mapNavigation.isFollowingUser ? "location.fill" : "location.magnifyingglass")
+                    .font(.system(size: 20))
+                    .foregroundColor(locationIconColor)
+                
+                Text(mapNavigation.isFollowingUser ? "FOL" : "LOC")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(isHoldingLocation ? (locationFlashPhase ? .green : .pink) : .pink)
+            }
+            .padding(.vertical, 8)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(
+                    LinearGradient(
+                        gradient: Gradient(colors: locationBorderColors),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: isHoldingLocation ? 3 : 2
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onTapGesture {
+            guard !suppressNextLocationTap else {
+                suppressNextLocationTap = false
+                return
+            }
+            osLogger.debug("📍 Location button tapped")
+            if mapNavigation.centerOnUser() {
+                HapticFeedback.playLOC()
+            }
+        }
+        .onLongPressGesture(minimumDuration: 3, maximumDistance: 50, perform: {
+            osLogger.debug("📍 Location button long-press — enabling follow mode")
+            stopLocationHoldFlash()
+            suppressNextLocationTap = true
+            if mapNavigation.enableFollowMode() {
+                HapticFeedback.playFOLActivated()
+            }
+        }, onPressingChanged: { pressing in
+            if pressing {
+                startLocationHoldFlash()
+            } else {
+                stopLocationHoldFlash()
+            }
+        })
+        .shadow(
+            color: isHoldingLocation ? (locationFlashPhase ? .pink.opacity(0.6) : .green.opacity(0.6)) : .black.opacity(0.3),
+            radius: 5,
+            x: 2,
+            y: 2
+        )
     }
     
     // Check for active notifications

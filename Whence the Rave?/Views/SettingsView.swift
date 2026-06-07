@@ -1,15 +1,6 @@
 import SwiftUI
 import os.log
 
-// Define reference to DistanceUnit enum for settings
-enum MapDistanceUnit: String, CaseIterable, Identifiable {
-    case kilometers = "Kilometers"
-    case meters = "Meters"
-    case miles = "Miles"
-    
-    var id: String { self.rawValue }
-}
-
 // Create a DeveloperMode class as a singleton to store the state
 class DeveloperMode: ObservableObject {
     static let shared = DeveloperMode()
@@ -59,6 +50,8 @@ struct SettingsView: View {
     
     // State to track the selected distance unit from MapSettings
     @State private var selectedDistanceUnit: String
+    @State private var selectedSearchDate: String
+    @State private var selectedSortOption: String
     
     // Developer mode
     @StateObject private var devMode = DeveloperMode.shared
@@ -70,6 +63,8 @@ struct SettingsView: View {
         self.viewModel = viewModel
         let initialUnit = MapSettings.shared.distanceUnit.rawValue
         _selectedDistanceUnit = State(initialValue: initialUnit)
+        _selectedSearchDate = State(initialValue: viewModel.searchDate.rawValue)
+        _selectedSortOption = State(initialValue: viewModel.sortOption.rawValue)
     }
     
     var body: some View {
@@ -134,20 +129,20 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Text(viewModel.searchDate.rawValue)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundColor(.green)
-                            .padding(.trailing, 4)
-                        
-                        Picker("", selection: $viewModel.searchDate) {
+                        Picker("", selection: $selectedSearchDate) {
                             ForEach(EventViewModel.SearchDateOption.allCases) { option in
                                 Text(option.rawValue)
                                     .font(.system(.subheadline, design: .monospaced))
-                }
-            }
+                            }
+                        }
                         .pickerStyle(.menu)
                         .accentColor(.green)
                         .labelsHidden()
+                        .onChange(of: selectedSearchDate) { _, newValue in
+                            if let option = EventViewModel.SearchDateOption(rawValue: newValue) {
+                                viewModel.searchDate = option
+                            }
+                        }
                     }
                     
                     // Sort Option picker
@@ -163,21 +158,21 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Text(viewModel.sortOption.rawValue)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundColor(.green)
-                            .padding(.trailing, 4)
-                
-                        Picker("", selection: $viewModel.sortOption) {
+                        Picker("", selection: $selectedSortOption) {
                             ForEach(EventViewModel.SortOption.allCases) { option in
                                 Text(option.rawValue)
                                     .font(.system(.subheadline, design: .monospaced))
-                    }
-                }
-                .pickerStyle(.menu)
+                            }
+                        }
+                        .pickerStyle(.menu)
                         .accentColor(.green)
                         .labelsHidden()
-            }
+                        .onChange(of: selectedSortOption) { _, newValue in
+                            if let option = EventViewModel.SortOption(rawValue: newValue) {
+                                viewModel.sortOption = option
+                            }
+                        }
+                    }
             
                     // Refresh on startup toggle
                 HStack {
@@ -306,13 +301,8 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Text(selectedDistanceUnit)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundColor(.green)
-                            .padding(.trailing, 4)
-                        
                         Picker("", selection: $selectedDistanceUnit) {
-                            ForEach(MapDistanceUnit.allCases) { unit in
+                            ForEach(DistanceUnit.allCases) { unit in
                                 Text(unit.rawValue)
                                     .font(.system(.subheadline, design: .monospaced))
                             }
@@ -670,8 +660,10 @@ struct SettingsView: View {
             isLoadingAreas = locationService.isLoadingAreas
             isLoadingGenres = genreService.isLoadingGenres
             
-            // Make sure our selection is in sync with MapSettings
+            // Make sure our selection is in sync with MapSettings and viewModel
             selectedDistanceUnit = mapSettings.distanceUnit.rawValue
+            selectedSearchDate = viewModel.searchDate.rawValue
+            selectedSortOption = viewModel.sortOption.rawValue
             logger.debug("📱 SettingsView appeared. Current distance unit: \(selectedDistanceUnit)")
             logger.debug("📱 MapSettings.shared.distanceUnit is now: \(mapSettings.distanceUnit.rawValue)")
         }

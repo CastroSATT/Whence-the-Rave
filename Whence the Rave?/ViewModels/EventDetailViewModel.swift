@@ -16,6 +16,10 @@ class EventDetailViewModel: ObservableObject {
             return
         }
         
+        if event?.id == id, error == nil {
+            return
+        }
+        
         isLoading = true
         error = nil
         

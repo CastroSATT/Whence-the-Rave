@@ -109,13 +109,15 @@ struct EventListPanelView: View {
                     Spacer()
                 }
             } else {
-                // Nearby events list - use EventListItem directly since it's already defined
+                // Nearby events list with stable identifiers
                 ScrollView {
-                    LazyVStack {
+                    LazyVStack(spacing: 0) {
+                        // Sort nearby events by distance but use stable identifiers
                         ForEach(viewModel.events.sorted { 
                             distanceToEventLogic($0) < distanceToEventLogic($1)
-                        }) { event in
+                        }, id: \.id) { event in
                             eventListItem(for: event)
+                                .id(event.id) // Ensure stable identity during scrolling
                         }
                     }
                     .padding(.horizontal)
@@ -150,11 +152,13 @@ struct EventListPanelView: View {
             // Search controls section
             searchControls
             
-            // Event list - use EventListItem directly since it's already defined
+            // Use our new consistent client-side sorting
             ScrollView {
-                LazyVStack {
-                    ForEach(viewModel.events) { event in
+                LazyVStack(spacing: 0) {
+                    // Use the view model's sorted events to ensure consistency
+                    ForEach(viewModel.getSortedEvents(), id: \.id) { event in
                         eventListItem(for: event)
+                            .id(event.id) // Ensure stable identity during scrolling
                     }
                 }
                 .padding(.horizontal)

@@ -10,15 +10,11 @@ import Combine
 struct EventMapView: View {
     @ObservedObject var viewModel: EventViewModel
     @ObservedObject private var mapSettings = MapSettings.shared
+    @StateObject private var mapNavigation = MapNavigationController()
     
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 51.5074, longitude: 0.1278), // Default to London
-        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-    )
     @State private var selectedEvent: RAEvent?
     @State private var showEventSheet = false
     @State private var mapError: String?
-    @State private var initialLocationSet = false
     @State private var forceMapRefresh = false // Added state variable to force map refresh
     @State private var currentUnit: DistanceUnit? // Track current unit to detect changes (initialized as nil)
     @State private var showSettings = false
@@ -36,15 +32,10 @@ struct EventMapView: View {
     private let logger = AppLogger.shared
     private let osLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whencetheraves", category: "EventMapView")
     
-    // Location controller
-    private var locationController: MapLocationController {
-        MapLocationController(region: $region, locationService: locationService)
-    }
-    
     var body: some View {
         ZStack {
             MapViewRepresentable(
-                region: $region,
+                navigation: mapNavigation,
                 selectedEvent: $selectedEvent,
                 showEventSheet: $showEventSheet,
                 events: viewModel.events,
@@ -85,7 +76,7 @@ struct EventMapView: View {
                             showingAreaPicker: $showingAreaPicker,
                             showSettings: $showSettings,
                             panelWidth: panelWidth,
-                            distanceToEventLogic: locationController.distanceToEvent
+                            distanceToEventLogic: mapNavigation.distanceToEvent
                         )
                         .onAppear {
                             osLogger.debug("📱 EventListPanelView initialized with width: \(panelWidth)")
@@ -94,11 +85,11 @@ struct EventMapView: View {
                         
                         // Navigation tabs on right edge
                         NavigationTabsView(
+                            mapNavigation: mapNavigation,
                             showEventList: $showEventList,
                             showNearbyEvents: $showNearbyEvents,
                             dragOffset: $dragOffset,
-                            showSettings: $showSettings,
-                            onLocationButtonTap: locationController.updateMapRegionToUserLocation
+                            showSettings: $showSettings
                         )
                         .offset(x: 40)
                         .zIndex(2) // Place above the panel but below other UI elements
@@ -163,7 +154,7 @@ struct EventMapView: View {
                             .fontWeight(.bold)
                             .padding(8)
                             .background(Color.black.opacity(0.7))
-                            .foregroundColor(.white)
+                            .foregroundColor(viewModel.isUsingCachedData ? .red : .green)
                             .cornerRadius(8)
                             .padding(.bottom, 8)
                         
@@ -259,19 +250,8 @@ struct EventMapView: View {
                                 longitudeDelta: 0.015
                             )
                             
-                            // Shift the center south to position the pin higher
-                            let latitudeOffset = span.latitudeDelta * 0.25
-                            let offsetCenter = CLLocationCoordinate2D(
-                                latitude: eventCoordinate.latitude - latitudeOffset,
-                                longitude: eventCoordinate.longitude
-                            )
-                            
-                            // Update the map region with the offset center
                             logger.debug("Centering map on swiped event: \(newEvent.title) with upper third positioning")
-                            region = MKCoordinateRegion(
-                                center: offsetCenter,
-                                span: span
-                            )
+                            mapNavigation.centerOnCoordinate(eventCoordinate, span: span)
                         }
                     }
                 )
@@ -320,20 +300,8 @@ struct EventMapView: View {
                         longitudeDelta: 0.015
                     )
                     
-                    // Calculate an offset coordinate to position the pin in the upper third of the screen
-                    // Shift the center south (decrease latitude) to position the pin higher in the view
-                    let latitudeOffset = span.latitudeDelta * 0.25 // This moves the pin to roughly the upper third
-                    let offsetCenter = CLLocationCoordinate2D(
-                        latitude: eventCoordinate.latitude - latitudeOffset,
-                        longitude: eventCoordinate.longitude
-                    )
-                    
-                    // Update the map region with the offset center
                     logger.debug("Centering map on selected event: \(event.title) with upper third positioning")
-                    region = MKCoordinateRegion(
-                        center: offsetCenter,
-                        span: span
-                    )
+                    mapNavigation.centerOnCoordinate(eventCoordinate, span: span)
                 }
             }
         }
@@ -388,60 +356,36 @@ struct EventMapView: View {
             currentUnit = mapSettings.distanceUnit
             logger.debug("Initial distance unit: \(mapSettings.distanceUnit.rawValue)")
             
-            locationController.debugEventsWithMissingLocations(viewModel.events)
+            mapNavigation.debugEventsWithMissingLocations(viewModel.events)
             
-            // Set initial zoom level to show a 10-mile radius around user's location
-            if !initialLocationSet, let userLocation = locationService.currentLocation {
-                initialLocationSet = true
-                locationController.centerMapOnUserWithRadius(userLocation: userLocation, milesRadius: initialZoomMilesRadius)
-            } else if !viewModel.events.isEmpty {
-            // If we have events already loaded, update the map region
-                logger.debug("Updating map to fit \(viewModel.events.count) events")
-                locationController.updateMapRegionToFitEvents(viewModel.events)
-            } else if locationService.currentLocation != nil {
-                // Otherwise, center on user's location if available
-                logger.debug("Centering map on user location")
-                locationController.updateMapRegionToUserLocation()
-                
-                // If no area is selected, try to select the nearest area
-                if viewModel.selectedArea == nil {
-                    logger.debug("No area selected, attempting to select nearest area")
-                    viewModel.autoSelectNearestArea()
-                }
-                
-                // If no events are loaded, automatically search with the current settings
-                if viewModel.events.isEmpty {
-                    logger.debug("No events loaded, performing automatic search with default settings")
+            applyInitialMapRegionIfNeeded(with: locationService.currentLocation)
+            
+            if viewModel.selectedArea == nil {
+                logger.debug("No area selected, attempting to select nearest area")
+                viewModel.autoSelectNearestArea()
+            }
+            
+            if viewModel.events.isEmpty {
+                logger.debug("No events loaded, performing automatic search with default settings")
+                if locationService.currentLocation != nil {
                     viewModel.findEvents()
-                }
-            } else {
-                logger.debug("No user location available, using default map region")
-                
-                // If no events and no location, still try to auto-select area and search
-                if viewModel.events.isEmpty {
-                    viewModel.autoSelectNearestArea() 
-                    // Use a delay to allow time for area selection
+                } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        if viewModel.selectedArea != nil && viewModel.events.isEmpty {
-                            logger.debug("Performing delayed automatic search with default settings")
+                        if viewModel.events.isEmpty {
                             viewModel.findEvents()
                         }
                     }
                 }
             }
         }
-        // On location update, set initial map region if not done yet
+        // On location update, set initial map region once if not done yet
         .onChange(of: locationService.currentLocation) { _, newLocation in
-            if newLocation != nil && !initialLocationSet {
-                initialLocationSet = true
-                locationController.centerMapOnUserWithRadius(userLocation: newLocation!, milesRadius: initialZoomMilesRadius)
-            }
+            applyInitialMapRegionIfNeeded(with: newLocation)
         }
-        // Update map when events change
+        // Update map when events change — pins only, never recenter automatically
         .onChange(of: viewModel.events) { oldEvents, newEvents in
             logger.debug("Events changed: \(oldEvents.count) -> \(newEvents.count)")
-            locationController.debugEventsWithMissingLocations(newEvents)
-            locationController.updateMapRegionToFitEvents(newEvents)
+            mapNavigation.debugEventsWithMissingLocations(newEvents)
         }
         // Force immediate refresh when unit changes in settings
         .onReceive(mapSettings.$distanceUnit) { newUnit in
@@ -497,6 +441,11 @@ struct EventMapView: View {
     }
 
     // Helper function to find nearby events
+    private func applyInitialMapRegionIfNeeded(with location: CLLocation?) {
+        guard let location else { return }
+        mapNavigation.applyInitialRegionIfNeeded(userLocation: location, milesRadius: initialZoomMilesRadius)
+    }
+    
     private func findNearbyEvents() {
         guard locationService.currentLocation != nil else { 
             logger.warning("Cannot find nearby events: No user location available")
