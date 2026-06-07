@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct Whence_the_Rave_App: App {
@@ -41,11 +40,7 @@ struct Whence_the_Rave_App: App {
                     isFirstLaunch = false
                 }
                 
-                    // Initialize the location service when the app starts
-                    locationService.requestLocationPermission()
-                    
-                    // Load the countries database
-                    locationService.loadCountriesDatabase()
+                locationService.loadCountriesDatabase()
                 }
         }
     }

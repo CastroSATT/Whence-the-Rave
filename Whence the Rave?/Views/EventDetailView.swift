@@ -377,6 +377,15 @@ struct EventContentView: View {
                         
                     Spacer()
                     
+                    if let url = event.residentAdvisorURL {
+                        ShareLink(item: url, subject: Text(event.title), message: Text(event.title)) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 24))
+                                .foregroundColor(.green)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
+                    
                     Button {
                         showNotificationDialog = true
                     } label: {
@@ -646,7 +655,7 @@ struct EventContentView: View {
             // Neo-punk action buttons
             VStack(spacing: 15) {
                 Button {
-                    if let url = URL(string: "https://ra.co\(event.contentUrl)") {
+                    if let url = event.residentAdvisorURL {
                         UIApplication.shared.open(url)
                     }
                 } label: {
@@ -949,6 +958,7 @@ struct NotificationOptionsView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showDeleteConfirmation = false
+    @ObservedObject private var devMode = DeveloperMode.shared
     private let logger = AppLogger.shared
     
     var body: some View {
@@ -1102,10 +1112,15 @@ struct NotificationOptionsView: View {
                     timeInterval: selectedTime.timeInterval
                 )
                 
-                alertTitle = "Success"
-                alertMessage = "Notification set for \(selectedTime.rawValue) the event."
                 hasActiveNotification = true
-                showAlert = true
+                
+                if devMode.isEnabled {
+                    alertTitle = "Success"
+                    alertMessage = "Notification set for \(selectedTime.rawValue) the event."
+                    showAlert = true
+                } else {
+                    isPresented = false
+                }
                 
                 logger.debug("Notification scheduled successfully")
             } else {
@@ -1122,8 +1137,11 @@ struct NotificationOptionsView: View {
     private func deleteNotification() {
         NotificationService.shared.cancelEventNotification(for: event)
         hasActiveNotification = false
-        alertTitle = "Notification Removed"
-        alertMessage = "The notification for this event has been removed."
-        showAlert = true
+        
+        if devMode.isEnabled {
+            alertTitle = "Notification Removed"
+            alertMessage = "The notification for this event has been removed."
+            showAlert = true
+        }
     }
 } 

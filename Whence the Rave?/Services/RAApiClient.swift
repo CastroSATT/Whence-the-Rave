@@ -1179,6 +1179,12 @@ extension RAEvent: Equatable {
     }
 }
 
+extension RAEvent {
+    var residentAdvisorURL: URL? {
+        URL(string: "https://ra.co\(contentUrl)")
+    }
+}
+
 // Add Equatable conformance to RAArtist
 extension RAArtist: Equatable {
     static func == (lhs: RAArtist, rhs: RAArtist) -> Bool {

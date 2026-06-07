@@ -4,6 +4,7 @@ import os.log
 
 enum MapNavigationMode {
     case free
+    case centered
     case following
 }
 
@@ -21,6 +22,11 @@ final class MapNavigationController: ObservableObject {
     private let osLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.whencetheraves", category: "MapNavigationController")
 
     var isFollowingUser: Bool { navigationMode == .following }
+    var isCenteredOnUser: Bool { navigationMode == .centered }
+    var shouldShowCompass: Bool { true }
+
+    /// Distance map center must move from user before LOC tracking unhooks.
+    private static let centeredUnhookThresholdMeters: CLLocationDistance = 75
 
     init(
         locationService: LocationService = .shared,
@@ -49,7 +55,7 @@ final class MapNavigationController: ObservableObject {
             logger.warning("Cannot center on user: No location available")
             return false
         }
-        navigationMode = .free
+        navigationMode = .centered
         let span = preserveZoom ? region.span : spanForMilesRadius(10, at: location.coordinate.latitude)
         queueRegion(MKCoordinateRegion(center: location.coordinate, span: span))
         return true
@@ -72,6 +78,7 @@ final class MapNavigationController: ObservableObject {
         span: MKCoordinateSpan,
         latitudeOffsetFraction: Double = 0.25
     ) {
+        navigationMode = .free
         let latitudeOffset = span.latitudeDelta * latitudeOffsetFraction
         let offsetCenter = CLLocationCoordinate2D(
             latitude: coordinate.latitude - latitudeOffset,
@@ -84,6 +91,29 @@ final class MapNavigationController: ObservableObject {
         pendingRegion = nil
         hasUserMovedMap = true
         region = mapRegion
+    }
+
+    /// Syncs map movement; unhooks LOC when center pans away from user. Rotation-only keeps `.centered`.
+    func userDidMoveMap(to mapRegion: MKCoordinateRegion) {
+        pendingRegion = nil
+        region = mapRegion
+
+        guard navigationMode == .centered else {
+            hasUserMovedMap = true
+            return
+        }
+
+        if centerPannedAwayFromUser(mapRegion.center) {
+            navigationMode = .free
+            hasUserMovedMap = true
+            osLogger.debug("LOC unhooked — map center panned away from user")
+        }
+    }
+
+    private func centerPannedAwayFromUser(_ center: CLLocationCoordinate2D) -> Bool {
+        guard let userLocation = locationService.currentLocation else { return true }
+        let mapCenter = CLLocation(latitude: center.latitude, longitude: center.longitude)
+        return userLocation.distance(from: mapCenter) > Self.centeredUnhookThresholdMeters
     }
 
     func syncRegionFromMap(_ mapRegion: MKCoordinateRegion) {

@@ -327,27 +327,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Heading indicator toggle
-                    HStack {
-                        Image(systemName: "location.north.line")
-                            .foregroundColor(.pink)
-                            .font(.system(size: 14))
-                        
-                        Text("COMPASS HEADING")
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Toggle("", isOn: Binding(
-                            get: { mapSettings.showHeadingIndicator },
-                            set: { mapSettings.setShowHeadingIndicator($0) }
-                        ))
-                        .labelsHidden()
-                        .toggleStyle(SwitchToggleStyle(tint: .green))
-                    }
-                    
                     HStack {
                         Image(systemName: "waveform.path")
                             .foregroundColor(.pink)
@@ -729,20 +708,16 @@ struct SettingsView: View {
             logger.debug("📱 MapSettings.shared.distanceUnit is now: \(mapSettings.distanceUnit.rawValue)")
         }
         // Monitor loading state for areas
-        .onChange(of: locationService.isLoadingAreas) { _, newValue in
-            isLoadingAreas = newValue
-            
-            // If loading just completed, show result
-            if !newValue && isLoadingAreas {
+        .onChange(of: locationService.isLoadingAreas) { wasLoading, isLoading in
+            isLoadingAreas = isLoading
+            if wasLoading && !isLoading {
                 showUpdateResult()
             }
         }
         // Monitor loading state for genres
-        .onChange(of: genreService.isLoadingGenres) { _, newValue in
-            isLoadingGenres = newValue
-            
-            // If loading just completed, show result
-            if !newValue && isLoadingGenres {
+        .onChange(of: genreService.isLoadingGenres) { wasLoading, isLoading in
+            isLoadingGenres = isLoading
+            if wasLoading && !isLoading {
                 displayGenreUpdateResult()
             }
         }
@@ -772,24 +747,6 @@ struct SettingsView: View {
                 .padding(.vertical, 10)
                 .listRowBackground(Color.black)
                 
-                // Debug logging toggle
-                HStack {
-                    Image(systemName: "terminal")
-                        .foregroundColor(.pink)
-                        .font(.system(size: 14))
-                    
-                    Text("VERBOSE LOGGING")
-                        .font(.system(.caption, design: .monospaced))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Toggle("", isOn: .constant(true)) // Replace with actual debug logging toggle
-                        .labelsHidden()
-                        .toggleStyle(SwitchToggleStyle(tint: .green))
-                }
-                
                 // API Request Info
                 HStack {
                     Image(systemName: "network")
@@ -811,7 +768,7 @@ struct SettingsView: View {
                 // Run diagnostics button
                 Button {
                     AppLogger.shared.debug("Running advanced diagnostics...")
-                    // Add advanced diagnostics code here
+                    viewModel.runDiagnostics()
                 } label: {
                     HStack {
                         Image(systemName: "hammer.fill")
@@ -872,7 +829,7 @@ struct SettingsView: View {
                 if fileManager.fileExists(atPath: raDataFolder.path) {
                     try fileManager.removeItem(at: raDataFolder)
                 }
-                isCacheCleared = true
+                isCacheCleared = devMode.isEnabled
             } catch {
                 AppLogger.shared.error("Error clearing cache: \(error.localizedDescription)")
             }
@@ -892,35 +849,46 @@ struct SettingsView: View {
         // Set up a timer to check the result after a few seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             if let error = locationService.loadingError {
-                // Update failed
-                areaUpdateSuccess = false
-                updateMessage = "Error updating database: \(error.localizedDescription)"
+                presentAreaUpdateResult(
+                    success: false,
+                    message: "Error updating database: \(error.localizedDescription)"
+                )
             } else if locationService.countries.isEmpty {
-                // No data returned but no error
-                areaUpdateSuccess = false
-                updateMessage = "No areas were loaded. Please check your internet connection and try again."
+                presentAreaUpdateResult(
+                    success: false,
+                    message: "No areas were loaded. Please check your internet connection and try again."
+                )
             } else {
-                // Success!
-                areaUpdateSuccess = true
-                updateMessage = "Successfully loaded \(locationService.countries.count) countries and regions."
+                presentAreaUpdateResult(
+                    success: true,
+                    message: "Successfully loaded \(locationService.countries.count) countries and regions."
+                )
             }
-            
-            showAreaUpdateResult = true
             isLoadingAreas = false
+        }
+    }
+    
+    private func presentAreaUpdateResult(success: Bool, message: String) {
+        areaUpdateSuccess = success
+        updateMessage = message
+        if !success || devMode.isEnabled {
+            showAreaUpdateResult = true
+        } else {
+            logger.debug("\(message)")
         }
     }
     
     private func showUpdateResult() {
         if let error = locationService.loadingError {
-            // Update failed
-            areaUpdateSuccess = false
-            updateMessage = "Error updating database: \(error.localizedDescription)"
-            showAreaUpdateResult = true
+            presentAreaUpdateResult(
+                success: false,
+                message: "Error updating database: \(error.localizedDescription)"
+            )
         } else if !locationService.countries.isEmpty {
-            // Success!
-            areaUpdateSuccess = true
-            updateMessage = "Successfully loaded \(locationService.countries.count) countries and regions."
-            showAreaUpdateResult = true
+            presentAreaUpdateResult(
+                success: true,
+                message: "Successfully loaded \(locationService.countries.count) countries and regions."
+            )
         }
     }
     
@@ -937,35 +905,46 @@ struct SettingsView: View {
         // Set up a timer to check the result after a few seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             if let error = genreService.loadingError {
-                // Update failed
-                genreUpdateSuccess = false
-                genreUpdateMessage = "Error updating genres: \(error.localizedDescription)"
+                presentGenreUpdateResult(
+                    success: false,
+                    message: "Error updating genres: \(error.localizedDescription)"
+                )
             } else if genreService.genres.isEmpty {
-                // No data returned but no error
-                genreUpdateSuccess = false
-                genreUpdateMessage = "No genres were loaded. Please check your internet connection and try again."
+                presentGenreUpdateResult(
+                    success: false,
+                    message: "No genres were loaded. Please check your internet connection and try again."
+                )
             } else {
-                // Success!
-                genreUpdateSuccess = true
-                genreUpdateMessage = "Successfully loaded \(genreService.genres.count) music genres."
+                presentGenreUpdateResult(
+                    success: true,
+                    message: "Successfully loaded \(genreService.genres.count) music genres."
+                )
             }
-            
-            showGenreUpdateResult = true
             isLoadingGenres = false
+        }
+    }
+    
+    private func presentGenreUpdateResult(success: Bool, message: String) {
+        genreUpdateSuccess = success
+        genreUpdateMessage = message
+        if !success || devMode.isEnabled {
+            showGenreUpdateResult = true
+        } else {
+            logger.debug("\(message)")
         }
     }
     
     private func displayGenreUpdateResult() {
         if let error = genreService.loadingError {
-            // Update failed
-            genreUpdateSuccess = false
-            genreUpdateMessage = "Error updating genres: \(error.localizedDescription)"
-            showGenreUpdateResult = true
+            presentGenreUpdateResult(
+                success: false,
+                message: "Error updating genres: \(error.localizedDescription)"
+            )
         } else if !genreService.genres.isEmpty {
-            // Success!
-            genreUpdateSuccess = true
-            genreUpdateMessage = "Successfully loaded \(genreService.genres.count) music genres."
-            showGenreUpdateResult = true
+            presentGenreUpdateResult(
+                success: true,
+                message: "Successfully loaded \(genreService.genres.count) music genres."
+            )
         }
     }
 } 

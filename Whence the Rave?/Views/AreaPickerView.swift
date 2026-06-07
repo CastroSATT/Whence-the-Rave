@@ -3,9 +3,6 @@ import Combine
 import Foundation
 import CoreLocation
 
-// FIXME: Missing imports for LocationService and RACountryArea models
-// Need to add proper imports for these types
-
 struct AreaPickerView: View {
     @Binding var selectedArea: RACountryArea?
     @State private var searchText = ""
@@ -149,6 +146,5 @@ struct AreaRow: View {
 }
 
 #Preview {
-    // FIXME: Need to fix the binding to match the expected type
     AreaPickerView(selectedArea: .constant(nil))
-} 
+}

@@ -427,17 +427,6 @@ struct EventMapView: View {
         .onChange(of: forceMapRefresh) { _, newValue in
             osLogger.debug("🔍 forceMapRefresh changed to: \(newValue), which should trigger map rebuild")
         }
-        
-        // Listen for changes to heading indicator setting
-        .onReceive(mapSettings.$showHeadingIndicator) { newValue in
-            osLogger.debug("🧭 Heading indicator setting changed to \(newValue)")
-            
-            // Force a refresh when the setting changes
-            DispatchQueue.main.async {
-                osLogger.debug("🧭 Forcing map refresh due to heading indicator change")
-                forceMapRefresh.toggle()
-            }
-        }
     }
 
     // Helper function to find nearby events

@@ -68,7 +68,6 @@ class MapSettings: ObservableObject {
     @Published private(set) var showDistanceCircles: Bool
     @Published private(set) var distanceUnit: DistanceUnit
     @Published private(set) var showSplashOnLaunch: Bool
-    @Published private(set) var showHeadingIndicator: Bool
     @Published private(set) var genreHapticsEnabled: Bool
     
     // Empty initializer to prevent compiler warnings
@@ -78,14 +77,12 @@ class MapSettings: ObservableObject {
         let unitString = UserDefaults.standard.string(forKey: "distanceUnit") ?? DistanceUnit.kilometers.rawValue
         let unitValue = DistanceUnit(rawValue: unitString) ?? .kilometers
         let splashValue = UserDefaults.standard.object(forKey: "showSplashOnLaunch") as? Bool ?? false
-        let headingValue = UserDefaults.standard.object(forKey: "showHeadingIndicator") as? Bool ?? true
         let genreHapticsValue = UserDefaults.standard.object(forKey: "genreHapticsEnabled") as? Bool ?? true
         
         // Direct assignment
         showDistanceCircles = circlesValue
         distanceUnit = unitValue
         showSplashOnLaunch = splashValue
-        showHeadingIndicator = headingValue
         genreHapticsEnabled = genreHapticsValue
         
         // Register for notifications
@@ -172,30 +169,6 @@ class MapSettings: ObservableObject {
         logger.debug("\(message)")
     }
     
-    // Setter for heading indicator
-    func setShowHeadingIndicator(_ value: Bool) {
-        // Only update if value changed
-        if showHeadingIndicator != value {
-            // Update property first
-            showHeadingIndicator = value
-            
-            // Save to UserDefaults
-            UserDefaults.standard.set(value, forKey: "showHeadingIndicator")
-            
-            // Log changes
-            logHeadingUpdate(value)
-            
-            // Notify observers
-            objectWillChange.send()
-        }
-    }
-    
-    // Separate logging method for heading indicator setting
-    private func logHeadingUpdate(_ newValue: Bool) {
-        let message = "ShowHeadingIndicator updated to: " + (newValue ? "true" : "false")
-        logger.debug("\(message)")
-    }
-    
     func setGenreHapticsEnabled(_ value: Bool) {
         if genreHapticsEnabled != value {
             genreHapticsEnabled = value
@@ -249,19 +222,6 @@ class MapSettings: ObservableObject {
                 
                 // Update property
                 self.showSplashOnLaunch = newSplashValue
-                self.objectWillChange.send()
-            }
-            
-            // Check heading indicator setting changes
-            if let newHeadingValue = UserDefaults.standard.object(forKey: "showHeadingIndicator") as? Bool,
-               newHeadingValue != self.showHeadingIndicator {
-                
-                // Log without property interpolation
-                let message = newHeadingValue ? "UserDefaults heading enabled" : "UserDefaults heading disabled"
-                self.logger.debug("\(message)")
-                
-                // Update property
-                self.showHeadingIndicator = newHeadingValue
                 self.objectWillChange.send()
             }
             

@@ -90,23 +90,17 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
         }
         
-        func updateCompassDisplay(on mapView: MKMapView, isFollowingUser: Bool) {
+        func updateCompassDisplay(on mapView: MKMapView, shouldShowCompass: Bool) {
             guard let compassButton else { return }
-            
-            if isFollowingUser && MapSettings.shared.showHeadingIndicator {
-                compassButton.compassVisibility = .visible
-                mapView.isRotateEnabled = true
-            } else {
-                compassButton.compassVisibility = .hidden
-                mapView.isRotateEnabled = true
-            }
+            compassButton.compassVisibility = shouldShowCompass ? .visible : .hidden
+            mapView.isRotateEnabled = true
         }
         
         func updateUserTracking(on mapView: MKMapView) {
             if parent.navigation.isFollowingUser {
                 guard !userCancelledFollow else { return }
                 
-                let desiredMode: MKUserTrackingMode = MapSettings.shared.showHeadingIndicator ? .followWithHeading : .follow
+                let desiredMode: MKUserTrackingMode = .followWithHeading
                 guard mapView.userTrackingMode != desiredMode else { return }
                 
                 isProgrammaticTrackingChange = true
@@ -434,6 +428,12 @@ struct MapViewRepresentable: UIViewRepresentable {
                 }
                 return
             }
+
+            if parent.navigation.isCenteredOnUser {
+                parent.navigation.userDidMoveMap(to: mapView.region)
+                logger.debug("Synced user map move (centered mode) to navigation controller")
+                return
+            }
             
             parent.navigation.userDidPan(to: mapView.region)
             logger.debug("Synced user pan to navigation controller")
@@ -678,7 +678,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         
         mapView.showsCompass = false
         let compassButton = MKCompassButton(mapView: mapView)
-        compassButton.compassVisibility = MapSettings.shared.showHeadingIndicator ? .visible : .hidden
+        compassButton.compassVisibility = .visible
         compassButton.translatesAutoresizingMaskIntoConstraints = false
         mapView.addSubview(compassButton)
         NSLayoutConstraint.activate([
@@ -735,7 +735,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             context.coordinator.updateUserTracking(on: uiView)
         }
         
-        context.coordinator.updateCompassDisplay(on: uiView, isFollowingUser: isFollowing)
+        context.coordinator.updateCompassDisplay(on: uiView, shouldShowCompass: navigation.shouldShowCompass)
         
         // Smart annotation management - only update annotations when necessary
         let existingEventAnnotations = uiView.annotations.compactMap { $0 as? EventAnnotation }
