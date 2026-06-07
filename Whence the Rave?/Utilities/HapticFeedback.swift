@@ -16,5 +16,16 @@ enum HapticFeedback {
             generator.impactOccurred(intensity: 1.0)
         }
     }
+
+    static func playGenreBeat() {
+        genreBeatGenerator.impactOccurred()
+        genreBeatGenerator.prepare()
+    }
+
+    private static let genreBeatGenerator: UIImpactFeedbackGenerator = {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        return generator
+    }()
 }
 #endif

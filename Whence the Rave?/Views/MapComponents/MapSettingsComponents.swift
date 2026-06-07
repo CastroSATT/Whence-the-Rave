@@ -69,6 +69,7 @@ class MapSettings: ObservableObject {
     @Published private(set) var distanceUnit: DistanceUnit
     @Published private(set) var showSplashOnLaunch: Bool
     @Published private(set) var showHeadingIndicator: Bool
+    @Published private(set) var genreHapticsEnabled: Bool
     
     // Empty initializer to prevent compiler warnings
     private init() {
@@ -78,12 +79,14 @@ class MapSettings: ObservableObject {
         let unitValue = DistanceUnit(rawValue: unitString) ?? .kilometers
         let splashValue = UserDefaults.standard.object(forKey: "showSplashOnLaunch") as? Bool ?? false
         let headingValue = UserDefaults.standard.object(forKey: "showHeadingIndicator") as? Bool ?? true
+        let genreHapticsValue = UserDefaults.standard.object(forKey: "genreHapticsEnabled") as? Bool ?? true
         
         // Direct assignment
         showDistanceCircles = circlesValue
         distanceUnit = unitValue
         showSplashOnLaunch = splashValue
         showHeadingIndicator = headingValue
+        genreHapticsEnabled = genreHapticsValue
         
         // Register for notifications
         NotificationCenter.default.addObserver(
@@ -193,6 +196,20 @@ class MapSettings: ObservableObject {
         logger.debug("\(message)")
     }
     
+    func setGenreHapticsEnabled(_ value: Bool) {
+        if genreHapticsEnabled != value {
+            genreHapticsEnabled = value
+            UserDefaults.standard.set(value, forKey: "genreHapticsEnabled")
+            logGenreHapticsUpdate(value)
+            objectWillChange.send()
+        }
+    }
+    
+    private func logGenreHapticsUpdate(_ newValue: Bool) {
+        let message = "GenreHapticsEnabled updated to: " + (newValue ? "true" : "false")
+        logger.debug("\(message)")
+    }
+    
     // Handle UserDefaults changes
     @objc private func handleUserDefaultsChange() {
         DispatchQueue.main.async {
@@ -245,6 +262,14 @@ class MapSettings: ObservableObject {
                 
                 // Update property
                 self.showHeadingIndicator = newHeadingValue
+                self.objectWillChange.send()
+            }
+            
+            if let newGenreHapticsValue = UserDefaults.standard.object(forKey: "genreHapticsEnabled") as? Bool,
+               newGenreHapticsValue != self.genreHapticsEnabled {
+                let message = newGenreHapticsValue ? "UserDefaults genre haptics enabled" : "UserDefaults genre haptics disabled"
+                self.logger.debug("\(message)")
+                self.genreHapticsEnabled = newGenreHapticsValue
                 self.objectWillChange.send()
             }
         }

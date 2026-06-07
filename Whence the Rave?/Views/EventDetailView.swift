@@ -26,6 +26,9 @@ struct EventDetailView: View {
     @State private var offset: CGFloat = 0
     @State private var isHorizontalSwiping = false // Track if currently swiping horizontally
     
+    @StateObject private var genreBeatController = GenreBeatController()
+    @ObservedObject private var mapSettings = MapSettings.shared
+    
     // Minimum drag amount required to trigger a change
     private let dragThreshold: CGFloat = 50
     
@@ -108,11 +111,14 @@ struct EventDetailView: View {
                     ForEach(getPageContent()) { event in
                         ScrollView {
                             EventContentView(
-                                event: event, 
-                                mapRegion: $mapRegion, 
+                                event: event,
+                                mapRegion: $mapRegion,
                                 mapCameraPosition: $mapCameraPosition,
                                 showNotificationDialog: $showNotificationDialog,
-                                hasActiveNotification: $hasActiveNotification
+                                hasActiveNotification: $hasActiveNotification,
+                                genreBeatController: genreBeatController,
+                                isCurrentEvent: event.id == currentEvent.id,
+                                genreHapticsEnabled: mapSettings.genreHapticsEnabled
                             )
                         }
                         .frame(width: geometry.size.width)
@@ -169,6 +175,16 @@ struct EventDetailView: View {
         }
         .onAppear {
             checkNotificationStatus()
+            startGenreBeat(for: currentEvent)
+        }
+        .onDisappear {
+            genreBeatController.stop()
+        }
+        .onChange(of: currentEvent.id) { _, _ in
+            startGenreBeat(for: currentEvent)
+        }
+        .onChange(of: mapSettings.genreHapticsEnabled) { _, _ in
+            startGenreBeat(for: currentEvent)
         }
         // Add gesture recognizer
         .gesture(
@@ -319,6 +335,14 @@ struct EventDetailView: View {
             }
         }
     }
+    
+    private func startGenreBeat(for event: RAEvent) {
+        guard let genres = event.genres, !genres.isEmpty else {
+            genreBeatController.stop()
+            return
+        }
+        genreBeatController.start(genres: genres, enabled: mapSettings.genreHapticsEnabled)
+    }
 }
 
 // MARK: - Event Content View
@@ -328,6 +352,9 @@ struct EventContentView: View {
     @Binding var mapCameraPosition: MapCameraPosition
     @Binding var showNotificationDialog: Bool
     @Binding var hasActiveNotification: Bool
+    @ObservedObject var genreBeatController: GenreBeatController
+    let isCurrentEvent: Bool
+    let genreHapticsEnabled: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -605,20 +632,12 @@ struct EventContentView: View {
                     GridItem(.adaptive(minimum: 120), spacing: 8)
                 ], spacing: 8) {
                     ForEach(genres) { genre in
-                        Text(genre.name)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.bold)
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [.green, .cyan]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(Capsule())
+                        GenrePillView(
+                            genre: genre,
+                            isActive: pillIsActive(genre: genre, genres: genres),
+                            beatPulse: genreBeatController.beatPulse,
+                            showsRotationDimming: isCurrentEvent && genreHapticsEnabled && genres.count > 1
+                        )
                     }
                 }
                 .padding(.horizontal)
@@ -721,6 +740,12 @@ struct EventContentView: View {
             .padding()
         }
         .padding(.vertical)
+    }
+    
+    private func pillIsActive(genre: RAGenre, genres: [RAGenre]) -> Bool {
+        guard isCurrentEvent, genreHapticsEnabled else { return false }
+        if genres.count == 1 { return true }
+        return genre.id == genreBeatController.activeGenreId
     }
     
     // Neo-punk section header

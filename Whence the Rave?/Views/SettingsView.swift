@@ -347,6 +347,26 @@ struct SettingsView: View {
                         .labelsHidden()
                         .toggleStyle(SwitchToggleStyle(tint: .green))
                     }
+                    
+                    HStack {
+                        Image(systemName: "waveform.path")
+                            .foregroundColor(.pink)
+                            .font(.system(size: 14))
+                        
+                        Text("GENRE HAPTICS")
+                            .font(.system(.caption, design: .monospaced))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: Binding(
+                            get: { mapSettings.genreHapticsEnabled },
+                            set: { mapSettings.setGenreHapticsEnabled($0) }
+                        ))
+                        .labelsHidden()
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                    }
                 }
                 .listRowBackground(Color.black.opacity(0.8))
                 .textCase(nil)
