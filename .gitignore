@@ -39,7 +39,7 @@ fastlane/test_output
 # Code injection
 iOSInjectionProject/
 
-# Local docs (not for repo)
+# Local resources & docs (not for repo)
 Resources/
 
 # Local editor / build tooling
