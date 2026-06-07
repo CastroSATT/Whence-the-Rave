@@ -541,6 +541,11 @@ struct SettingsView: View {
                     .padding(.vertical, 10)
                     .listRowBackground(Color.black)
                     
+                    Text("Event data from Resident Advisor. Not affiliated with RA.")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .listRowBackground(Color.black.opacity(0.8))
+                    
                 HStack {
                         Image(systemName: "info.circle")
                             .foregroundColor(.pink)
@@ -578,7 +583,7 @@ struct SettingsView: View {
                 }
                 
                     Button {
-                    if let url = URL(string: "https://github.com/whenceartthouraves") {
+                    if let url = URL(string: LegalURLs.githubRepo) {
                         UIApplication.shared.open(url)
                     }
                     } label: {
@@ -596,7 +601,25 @@ struct SettingsView: View {
                 }
                 
                     Button {
-                    if let url = URL(string: "https://ra.co/about") {
+                    if let url = URL(string: LegalURLs.disclaimer) {
+                        UIApplication.shared.open(url)
+                    }
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.pink)
+                                .font(.system(size: 14))
+                            
+                            Text("LEGAL & DISCLAIMER")
+                                .font(.system(.caption, design: .monospaced))
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                }
+                
+                    Button {
+                    if let url = URL(string: LegalURLs.residentAdvisorAbout) {
                         UIApplication.shared.open(url)
                     }
                     } label: {

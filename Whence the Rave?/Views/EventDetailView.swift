@@ -651,6 +651,18 @@ struct EventContentView: View {
                     .foregroundColor(.black)
                     .cornerRadius(8)
                 }
+                
+                Button {
+                    if let url = URL(string: LegalURLs.disclaimer) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text("Event data from Resident Advisor")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .underline()
+                }
+                .buttonStyle(BorderlessButtonStyle())
             
                 if let venue = event.venue {
                     Button {

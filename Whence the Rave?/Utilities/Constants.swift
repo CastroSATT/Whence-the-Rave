@@ -19,4 +19,11 @@ struct Constants {
     
     // Search
     static let searchPageSize = 25
+}
+
+enum LegalURLs {
+    static let githubRepo = "https://github.com/CastroSATT/Whence-the-Rave"
+    static let disclaimer = "https://github.com/CastroSATT/Whence-the-Rave/blob/main/DISCLAIMER.md"
+    static let residentAdvisor = "https://ra.co"
+    static let residentAdvisorAbout = "https://ra.co/about"
 } 
