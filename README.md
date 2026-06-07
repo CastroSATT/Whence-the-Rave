@@ -2,7 +2,7 @@
 
 An iOS app for discovering electronic music events on a map. Browse listings by area and date, see venues near you, set reminders, and open full event details on [Resident Advisor](https://ra.co).
 
-**Platform:** iOS 18.0+  
+**Platform:** iOS 17.0+  
 **Language:** Swift / SwiftUI  
 **Repository:** [github.com/CastroSATT/Whence-the-Rave](https://github.com/CastroSATT/Whence-the-Rave)
 
@@ -57,7 +57,7 @@ An iOS app for discovering electronic music events on a map. Browse listings by 
 
 ## Requirements
 
-- iPhone running **iOS 18.0** or later
+- iPhone running **iOS 17.0** or later
 - Location permission (recommended) for map centering and nearby events
 - Notification permission (optional) for reminders
 - Internet connection for live event data (cached data used when offline)
@@ -112,6 +112,8 @@ The app uses:
 - **Local storage** — to cache event and area data on your device
 
 Location data is not sold or shared with third parties for advertising. Cached data can be cleared in Settings.
+
+For the full privacy policy, see [PRIVACY.md](PRIVACY.md).
 
 ---
 

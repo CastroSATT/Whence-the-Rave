@@ -18,49 +18,21 @@ protocol MapLogger {
     func info(_ message: String)
 }
 
-/// Default implementation that forwards to AppLogger if available
+/// Default implementation that forwards to AppLogger
 extension MapLogger {
     func debug(_ message: String) {
-        #if DEBUG
-        print("DEBUG: \(message)")
-        #endif
-        
-        // Try to use AppLogger if available
-        if let appLogger = (NSClassFromString("AppLogger") as? NSObject.Type)?.value(forKey: "shared") as? NSObject {
-            _ = appLogger.perform(Selector(("debug:")), with: message)
-        }
+        AppLogger.shared.debug(message)
     }
     
     func warning(_ message: String) {
-        #if DEBUG
-        print("WARNING: \(message)")
-        #endif
-        
-        // Try to use AppLogger if available
-        if let appLogger = (NSClassFromString("AppLogger") as? NSObject.Type)?.value(forKey: "shared") as? NSObject {
-            _ = appLogger.perform(Selector(("warning:")), with: message)
-        }
+        AppLogger.shared.warning(message)
     }
     
     func error(_ message: String) {
-        #if DEBUG
-        print("ERROR: \(message)")
-        #endif
-        
-        // Try to use AppLogger if available
-        if let appLogger = (NSClassFromString("AppLogger") as? NSObject.Type)?.value(forKey: "shared") as? NSObject {
-            _ = appLogger.perform(Selector(("error:")), with: message)
-        }
+        AppLogger.shared.error(message)
     }
     
     func info(_ message: String) {
-        #if DEBUG
-        print("INFO: \(message)")
-        #endif
-        
-        // Try to use AppLogger if available
-        if let appLogger = (NSClassFromString("AppLogger") as? NSObject.Type)?.value(forKey: "shared") as? NSObject {
-            _ = appLogger.perform(Selector(("info:")), with: message)
-        }
+        AppLogger.shared.info(message)
     }
 } 

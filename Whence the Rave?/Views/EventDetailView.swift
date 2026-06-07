@@ -949,6 +949,7 @@ struct NotificationOptionsView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showDeleteConfirmation = false
+    private let logger = AppLogger.shared
     
     var body: some View {
         NavigationView {
@@ -1086,34 +1087,29 @@ struct NotificationOptionsView: View {
     }
     
     private func scheduleNotification() {
-        print("🔔 DEBUG: Starting to schedule notification for event: \(event.title)")
+        logger.debug("Starting to schedule notification for event: \(event.title)")
         
-        // If there's an existing notification, remove it first
         if hasActiveNotification {
-            print("🔔 DEBUG: Removing existing notification first")
+            logger.debug("Removing existing notification first")
             NotificationService.shared.cancelEventNotification(for: event)
         }
         
-        // Request notification permission and schedule
         NotificationService.shared.requestPermission { granted in
             if granted {
-                print("🔔 DEBUG: Permission granted, scheduling notification")
-                // Schedule notification
+                logger.debug("Permission granted, scheduling notification")
                 NotificationService.shared.scheduleEventNotification(
                     for: event, 
                     timeInterval: selectedTime.timeInterval
                 )
                 
-                // Show success alert
                 alertTitle = "Success"
                 alertMessage = "Notification set for \(selectedTime.rawValue) the event."
                 hasActiveNotification = true
                 showAlert = true
                 
-                print("🔔 DEBUG: Notification scheduled successfully")
+                logger.debug("Notification scheduled successfully")
             } else {
-                print("🔔 DEBUG: Permission denied")
-                // Show error alert
+                logger.debug("Permission denied")
                 alertTitle = "Permission Denied"
                 alertMessage = "Please enable notifications for this app in Settings to receive event reminders."
                 showAlert = true

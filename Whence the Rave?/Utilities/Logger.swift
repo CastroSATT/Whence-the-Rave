@@ -12,23 +12,22 @@ class AppLogger {
     
     static let shared = AppLogger()
     
-    // Use OSLog for better performance in production
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.app.whence-the-rave", category: "WhenceTheRave")
     
-    // Log to console with optional file, function, line info
     func log(_ message: String, level: LogLevel = .debug, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line) {
         let fileURL = URL(fileURLWithPath: fileName)
         let className = fileURL.lastPathComponent.replacingOccurrences(of: ".swift", with: "")
-        
         let logMessage = "[\(level.rawValue)] [\(className)] \(functionName) [Line \(lineNumber)]: \(message)"
         
-        // Print to console
+        #if DEBUG
         print(logMessage)
+        #endif
         
-        // Also use OSLog with appropriate log level
         switch level {
         case .debug:
+            #if DEBUG
             logger.debug("\(logMessage)")
+            #endif
         case .info:
             logger.info("\(logMessage)")
         case .warning:
@@ -38,7 +37,6 @@ class AppLogger {
         }
     }
     
-    // Convenience methods
     func debug(_ message: String, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line) {
         log(message, level: .debug, fileName: fileName, functionName: functionName, lineNumber: lineNumber)
     }
@@ -54,4 +52,4 @@ class AppLogger {
     func error(_ message: String, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line) {
         log(message, level: .error, fileName: fileName, functionName: functionName, lineNumber: lineNumber)
     }
-} 
+}

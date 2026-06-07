@@ -12,6 +12,7 @@ struct NotificationsManagerView: View {
     
     // Add reference to developer mode
     @ObservedObject private var devMode = DeveloperMode.shared
+    private let logger = AppLogger.shared
     
     var body: some View {
         ZStack {
@@ -161,24 +162,24 @@ struct NotificationsManagerView: View {
         }
         .task {
             // Load notifications on initial view appearance
-            print("🔔 DEBUG: NotificationsManagerView - task triggered")
+            logger.debug("NotificationsManagerView - task triggered")
             if !viewAppeared {
                 viewAppeared = true
                 loadNotifications()
             }
         }
         .onAppear {
-            print("🔔 DEBUG: NotificationsManagerView - onAppear called")
+            logger.debug("NotificationsManagerView - onAppear called")
             // Load notifications on each appearance
             loadNotifications()
         }
         .onDisappear {
-            print("🔔 DEBUG: NotificationsManagerView - onDisappear called")
+            logger.debug("NotificationsManagerView - onDisappear called")
         }
     }
     
     private func loadNotifications() {
-        print("🔔 DEBUG: NotificationsManagerView - Loading notifications")
+        logger.debug("NotificationsManagerView - Loading notifications")
         isLoading = true
         
         // Use direct UNUserNotificationCenter API for reliability
@@ -188,14 +189,14 @@ struct NotificationsManagerView: View {
             let notifCount = requests.count
             let eventCount = eventRequests.count
             
-            print("🔔 DEBUG: Found \(notifCount) total notifications, \(eventCount) event notifications")
+            self.logger.debug("Found \(notifCount) total notifications, \(eventCount) event notifications")
             self.debugMessage = "System found: \(notifCount) total, \(eventCount) event notifications"
             
             // Create notifications from the requests directly
             var notifications: [EventNotification] = []
             
             for request in eventRequests {
-                print("🔔 DEBUG: Processing notification: \(request.identifier)")
+                self.logger.debug("Processing notification: \(request.identifier)")
                 
                 // Extract event ID from identifier
                 let components = request.identifier.split(separator: "-")
@@ -209,21 +210,21 @@ struct NotificationsManagerView: View {
                     
                     // 1. Try to get data from userInfo
                     if let details = request.content.userInfo["eventDetails"] as? [String: String] {
-                        print("🔔 DEBUG: Found details in userInfo dictionary: \(details)")
+                        self.logger.debug("Found details in userInfo dictionary: \(details)")
                         eventTitle = details["title"] ?? eventTitle
                         eventDate = details["date"] ?? eventDate
                         notifyTime = details["notifyTime"] ?? notifyTime
                     } 
                     // 2. Try userInfo as AnyHashable
                     else if let details = request.content.userInfo["eventDetails"] as? [AnyHashable: Any] {
-                        print("🔔 DEBUG: Found details as AnyHashable dict: \(details)")
+                        self.logger.debug("Found details as AnyHashable dict: \(details)")
                         if let title = details["title"] as? String { eventTitle = title }
                         if let date = details["date"] as? String { eventDate = date }
                         if let time = details["notifyTime"] as? String { notifyTime = time }
                     } 
                     // 3. Fallback to notification content
                     else {
-                        print("🔔 DEBUG: No details in userInfo, using content")
+                        self.logger.debug("No details in userInfo, using content")
                         // Clean up the body text to get the event title
                         eventTitle = request.content.body
                             .replacingOccurrences(of: "'", with: "")
@@ -235,14 +236,14 @@ struct NotificationsManagerView: View {
                     if let trigger = request.trigger as? UNCalendarNotificationTrigger, 
                        let date = Calendar.current.date(from: trigger.dateComponents) {
                         notificationDate = date
-                        print("🔔 DEBUG: Using calendar trigger date: \(date)")
+                        self.logger.debug("Using calendar trigger date: \(date)")
                     } else if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
                         let fireDate = Date(timeIntervalSinceNow: trigger.timeInterval)
                         notificationDate = fireDate
-                        print("🔔 DEBUG: Using time interval trigger date: \(fireDate)")
+                        self.logger.debug("Using time interval trigger date: \(fireDate)")
                     }
                     
-                    print("🔔 DEBUG: Creating notification object - ID: \(request.identifier), Title: \(eventTitle)")
+                    self.logger.debug("Creating notification object - ID: \(request.identifier), Title: \(eventTitle)")
                     
                     // Create the notification object
                     let notification = EventNotification(
@@ -258,7 +259,7 @@ struct NotificationsManagerView: View {
                 }
             }
             
-            print("🔔 DEBUG: Parsed \(notifications.count) notifications out of \(eventRequests.count) requests")
+            self.logger.debug("Parsed \(notifications.count) notifications out of \(eventRequests.count) requests")
             
             // Sort by notification date
             notifications.sort { $0.notificationDate < $1.notificationDate }
@@ -268,7 +269,7 @@ struct NotificationsManagerView: View {
                 self.activeNotifications = notifications
                 self.isLoading = false
                 
-                print("🔔 DEBUG: Updated UI with \(notifications.count) notifications")
+                self.logger.debug("Updated UI with \(notifications.count) notifications")
                 self.debugMessage += "\nDisplaying \(notifications.count) notifications"
             }
         }
@@ -283,7 +284,7 @@ struct NotificationsManagerView: View {
     
     private func createTestNotification() {
         // Create and schedule a test notification for debugging
-        print("🔔 DEBUG: Creating test notification")
+        logger.debug("Creating test notification")
         
         let content = UNMutableNotificationContent()
         content.title = "Upcoming Event Reminder"
@@ -314,7 +315,7 @@ struct NotificationsManagerView: View {
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: futureDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
-        print("🔔 DEBUG: Test notification will fire at: \(futureDate)")
+        logger.debug("Test notification will fire at: \(futureDate)")
         
         // Create the request
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
@@ -322,9 +323,9 @@ struct NotificationsManagerView: View {
         // Schedule the notification
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("🔔 ERROR: Test notification error: \(error)")
+                self.logger.error("Test notification error: \(error)")
             } else {
-                print("🔔 SUCCESS: Test notification created with ID: \(identifier)")
+                self.logger.info("Test notification created with ID: \(identifier)")
                 
                 // Verify notification was registered
                 UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
@@ -332,9 +333,9 @@ struct NotificationsManagerView: View {
                     let allNotifications = requests.filter { $0.identifier.hasPrefix("event-") }
                     let thisNotification = requests.first { $0.identifier == identifier }
                     
-                    print("🔔 DEBUG: Verification - Total notifications: \(requests.count)")
-                    print("🔔 DEBUG: Verification - Event notifications: \(allNotifications.count)")
-                    print("🔔 DEBUG: Verification - Test notification found: \(thisNotification != nil)")
+                    self.logger.debug("Verification - Total notifications: \(requests.count)")
+                    self.logger.debug("Verification - Event notifications: \(allNotifications.count)")
+                    self.logger.debug("Verification - Test notification found: \(thisNotification != nil)")
                     
                     // Reload notifications after a brief delay
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -345,9 +346,9 @@ struct NotificationsManagerView: View {
                         if #available(iOS 17.0, *) {
                             UNUserNotificationCenter.current().setBadgeCount(badgeCount) { error in
                                 if let error = error {
-                                    print("🔔 ERROR: Failed to update badge count: \(error.localizedDescription)")
+                                    self.logger.error("Failed to update badge count: \(error.localizedDescription)")
                                 } else {
-                                    print("🔔 DEBUG: Updated app badge number to \(badgeCount) using new API")
+                                    self.logger.debug("Updated app badge number to \(badgeCount) using new API")
                                 }
                             }
                         } else {
@@ -357,7 +358,7 @@ struct NotificationsManagerView: View {
                                 UIApplication.shared.applicationIconBadgeNumber = count
                             }
                             setLegacyBadge(badgeCount)
-                            print("🔔 DEBUG: Updated app badge number to \(badgeCount) using legacy API")
+                            self.logger.debug("Updated app badge number to \(badgeCount) using legacy API")
                         }
                     }
                 }

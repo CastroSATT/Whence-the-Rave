@@ -9,6 +9,7 @@ class EventDetailViewModel: ObservableObject {
     
     private let apiClient = RAApiClient.shared
     private var cancellables = Set<AnyCancellable>()
+    private let logger = AppLogger.shared
     
     func fetchEvent(id: String) {
         guard !id.isEmpty else {
@@ -73,20 +74,20 @@ class EventDetailViewModel: ObservableObject {
                 
                 if let error = error {
                     self.error = "Failed to load event: \(error.localizedDescription)"
-                    print("🔍 ERROR: Failed to fetch event \(id): \(error)")
+                    self.logger.error("Failed to fetch event \(id): \(error)")
                     return
                 }
                 
                 guard let data = data else {
                     self.error = "No data received"
-                    print("🔍 ERROR: No data received for event \(id)")
+                    self.logger.error("No data received for event \(id)")
                     return
                 }
                 
                 do {
                     // Try to parse the response
                     let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    print("🔍 DEBUG: Received event data: \(String(describing: jsonResponse))")
+                    self.logger.debug("Received event data: \(String(describing: jsonResponse))")
                     
                     if let eventData = jsonResponse?["data"] as? [String: Any],
                        let eventDict = eventData["event"] as? [String: Any] {
@@ -95,14 +96,14 @@ class EventDetailViewModel: ObservableObject {
                         let event = try JSONDecoder().decode(RAEvent.self, from: jsonData)
                         
                         self.event = event
-                        print("🔍 SUCCESS: Loaded event: \(event.title)")
+                        self.logger.info("Loaded event: \(event.title)")
                     } else {
                         self.error = "Event not found"
-                        print("🔍 ERROR: Event data not found in response")
+                        self.logger.error("Event data not found in response")
                     }
                 } catch {
                     self.error = "Failed to parse event data: \(error.localizedDescription)"
-                    print("🔍 ERROR: Failed to parse event data: \(error)")
+                    self.logger.error("Failed to parse event data: \(error)")
                 }
             }
         }

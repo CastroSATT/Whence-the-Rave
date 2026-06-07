@@ -621,6 +621,24 @@ struct SettingsView: View {
                 }
                 
                     Button {
+                    if let url = URL(string: LegalURLs.privacyPolicy) {
+                        UIApplication.shared.open(url)
+                    }
+                    } label: {
+                        HStack {
+                            Image(systemName: "hand.raised")
+                                .foregroundColor(.pink)
+                                .font(.system(size: 14))
+                            
+                            Text("PRIVACY POLICY")
+                                .font(.system(.caption, design: .monospaced))
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                }
+                
+                    Button {
                     if let url = URL(string: LegalURLs.disclaimer) {
                         UIApplication.shared.open(url)
                     }
@@ -792,7 +810,7 @@ struct SettingsView: View {
                 
                 // Run diagnostics button
                 Button {
-                    print("Running advanced diagnostics...")
+                    AppLogger.shared.debug("Running advanced diagnostics...")
                     // Add advanced diagnostics code here
                 } label: {
                     HStack {
@@ -856,7 +874,7 @@ struct SettingsView: View {
                 }
                 isCacheCleared = true
             } catch {
-                print("Error clearing cache: \(error.localizedDescription)")
+                AppLogger.shared.error("Error clearing cache: \(error.localizedDescription)")
             }
         }
     }

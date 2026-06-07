@@ -23,6 +23,8 @@ struct Constants {
 
 enum LegalURLs {
     static let githubRepo = "https://github.com/CastroSATT/Whence-the-Rave"
+    static let githubIssues = "https://github.com/CastroSATT/Whence-the-Rave/issues"
+    static let privacyPolicy = "https://github.com/CastroSATT/Whence-the-Rave/blob/main/PRIVACY.md"
     static let disclaimer = "https://github.com/CastroSATT/Whence-the-Rave/blob/main/DISCLAIMER.md"
     static let residentAdvisor = "https://ra.co"
     static let residentAdvisorAbout = "https://ra.co/about"
